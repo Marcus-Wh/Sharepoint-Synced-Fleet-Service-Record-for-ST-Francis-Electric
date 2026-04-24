@@ -1,0 +1,26 @@
+{
+  "name": "sf-service-record",
+  "version": "1.0.0",
+  "description": "St. Francis Electric — Equipment Service Record",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder --win --publish never"
+  },
+  "devDependencies": {
+    "electron": "^28.1.0",
+    "electron-builder": "^24.9.1"
+  },
+  "build": {
+    "appId": "com.stfranciselectric.servicerecord",
+    "productName": "SF Service Record",
+    "directories": { "output": "dist" },
+    "win": {
+      "target": ["nsis", "portable"]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    }
+  }
+}

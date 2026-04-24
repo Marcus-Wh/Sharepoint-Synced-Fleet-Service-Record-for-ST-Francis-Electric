@@ -1,0 +1,1065 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: file:; script-src 'self' 'unsafe-inline'; connect-src 'self'; object-src 'none'; base-uri 'none';">
+<title>SFE Service Record</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;900&family=Barlow:wght@400;500;600&display=swap');
+
+  :root {
+    --ink: #1a1a1a; --rule: #c0c0c0; --accent: #c0392b; --bg: #f5f3ef;
+    --page-bg: #ffffff; --toolbar-bg: #1a1a1a; --modal-bg: #ffffff;
+    --section-header-bg: #f0eeea; --check-item-border: #ebebeb;
+    --meta-color: #777; --label-color: #888; --input-bg: transparent;
+  }
+  [data-theme="dark"] {
+    --ink: #e8e8e8; --rule: #444; --bg: #1e1e1e; --page-bg: #2a2a2a;
+    --toolbar-bg: #111; --modal-bg: #2a2a2a; --section-header-bg: #333;
+    --check-item-border: #3a3a3a; --meta-color: #aaa; --label-color: #aaa;
+  }
+  /* Native <select> dropdowns inherit colors from the control; give them
+     explicit dark bg + light text in dark mode so the options are readable. */
+  [data-theme="dark"] select,
+  [data-theme="dark"] option {
+    background-color: #2a2a2a;
+    color: #e8e8e8;
+  }
+  [data-theme="dark"] option:checked,
+  [data-theme="dark"] option:hover {
+    background-color: #3a2020;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Barlow', sans-serif; background: var(--bg); color: var(--ink); font-size: 13px; }
+
+  /* ── Toolbar ── */
+  .toolbar { position:sticky; top:0; z-index:100; background:var(--toolbar-bg); color:#f0f0f0; display:flex; align-items:center; gap:6px; padding:0 12px; height:46px; box-shadow:0 2px 8px rgba(0,0,0,.4); }
+  .toolbar-brand { display:flex; align-items:center; gap:8px; margin-right:12px; flex-shrink:0; }
+  .toolbar-brand-icon { height:26px; width:26px; object-fit:contain; border-radius:3px; }
+  .toolbar-brand-name { font-family:'Barlow Condensed',sans-serif; font-size:15px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; white-space:nowrap; color:#fff; }
+  .toolbar-sep { width:1px; height:24px; background:rgba(255,255,255,.15); margin:0 4px; flex-shrink:0; }
+  .tb-btn { font-family:'Barlow Condensed',sans-serif; font-size:12px; font-weight:700; letter-spacing:1px; text-transform:uppercase; padding:5px 11px; border:1px solid rgba(255,255,255,.18); border-radius:3px; background:rgba(255,255,255,.07); color:#ddd; cursor:pointer; white-space:nowrap; }
+  .tb-btn:hover { background:rgba(255,255,255,.18); color:#fff; }
+  .tb-btn-primary { background:var(--accent); border-color:var(--accent); color:#fff; }
+  .tb-btn-primary:hover { background:#a93226; }
+  .tb-btn-secondary { background:rgba(255,255,255,.13); }
+  .toolbar-spacer { flex:1; }
+  #sharepoint-status { font-size:11px; color:rgba(255,255,255,.4); max-width:220px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex-shrink:1; }
+  #sharepoint-status.configured { color:#6dbf6d; }
+
+  /* ── Dark toggle ── */
+  .dark-toggle-wrap { display:flex; align-items:center; gap:6px; cursor:pointer; user-select:none; flex-shrink:0; }
+  .dark-toggle-label { font-size:11px; color:rgba(255,255,255,.55); }
+  .dark-toggle-wrap input[type="checkbox"] { position:absolute; opacity:0; width:0; height:0; }
+  .dark-toggle-track { width:34px; height:18px; background:rgba(255,255,255,.2); border-radius:9px; position:relative; transition:background .2s; }
+  .dark-toggle-wrap input:checked + .dark-toggle-track { background:var(--accent); }
+  .dark-toggle-thumb { position:absolute; top:2px; left:2px; width:14px; height:14px; background:#fff; border-radius:50%; transition:left .2s; }
+  .dark-toggle-wrap input:checked + .dark-toggle-track .dark-toggle-thumb { left:18px; }
+
+  /* ── Page ── */
+  .page-wrap { padding:12px; }
+  .page { max-width:780px; margin:0 auto; background:var(--page-bg); border:1px solid var(--rule); box-shadow:0 2px 12px rgba(0,0,0,.1); }
+
+  /* ── Header ── */
+  .header { background:var(--page-bg); padding:10px 16px 10px 24px; display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid var(--ink); }
+  .header-logo { height:60px; }
+  .header-title { font-family:'Barlow Condensed',sans-serif; font-size:22px; font-weight:900; letter-spacing:4px; text-transform:uppercase; color:var(--ink); margin-left:16px; }
+
+  /* ── Top info ── */
+  .top-info { display:grid; grid-template-columns:1fr 1fr 1fr 140px; border-bottom:2px solid var(--ink); }
+  .info-cell { padding:6px 10px; border-right:1px solid var(--rule); }
+  .info-cell:last-child { border-right:none; }
+  .info-cell label { display:block; font-size:8px; font-weight:700; letter-spacing:1.2px; text-transform:uppercase; color:var(--label-color); margin-bottom:2px; }
+  .info-cell input { width:100%; border:none; border-bottom:1px solid var(--rule); background:transparent; font-family:'Barlow',sans-serif; font-size:12px; font-weight:500; color:var(--ink); padding:1px 0; outline:none; }
+  .info-cell input:focus { border-bottom-color:var(--accent); }
+
+  /* ── Vehicle row ── */
+  .vehicle-row { display:grid; grid-template-columns:80px 1fr 1fr 1fr 100px 100px; border-bottom:1px solid var(--rule); }
+
+  /* ── Section headers ── */
+  .section-header { background:var(--section-header-bg); border-bottom:1px solid var(--rule); border-top:1px solid var(--rule); padding:5px 12px; font-family:'Barlow Condensed',sans-serif; font-size:11px; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:#555; display:flex; align-items:center; gap:8px; }
+  [data-theme="dark"] .section-header { color:#bbb; }
+  .section-header::after { content:''; flex:1; height:1px; background:var(--rule); }
+
+  /* ── Checklist ── */
+  .checklist-grid { display:grid; grid-template-columns:1fr 1fr 1fr; border-bottom:1px solid var(--rule); }
+  .check-item { display:flex; align-items:center; gap:8px; padding:6px 12px; border-bottom:1px solid var(--check-item-border); border-right:1px solid var(--check-item-border); }
+  .check-item:nth-child(3n) { border-right:none; }
+  .check-item input[type="checkbox"] { width:15px; height:15px; accent-color:var(--accent); cursor:pointer; flex-shrink:0; }
+  .check-item .check-label { font-size:12px; font-weight:500; flex:1; }
+  .check-item select { border:none; border-bottom:1px solid var(--rule); background:transparent; font-family:'Barlow',sans-serif; font-size:11px; color:var(--ink); outline:none; cursor:pointer; max-width:70px; }
+
+  /* ── CARB box ── */
+  .carb-box { margin:10px 12px; padding:10px 12px; border:2px solid var(--ink); }
+  .carb-box .measure-title { font-family:'Barlow Condensed',sans-serif; font-size:12px; font-weight:900; letter-spacing:1px; text-transform:uppercase; margin-bottom:8px; color:var(--ink); }
+
+  /* ── Measurements ── */
+  .measurements { display:grid; grid-template-columns:1fr 1fr; border-bottom:1px solid var(--rule); }
+  .measure-group { padding:10px 12px; border-right:1px solid var(--rule); }
+  .measure-group:last-child { border-right:none; }
+  .measure-title { font-family:'Barlow Condensed',sans-serif; font-size:12px; font-weight:700; letter-spacing:1px; text-transform:uppercase; margin-bottom:8px; color:var(--ink); }
+  .measure-row { display:flex; align-items:center; gap:10px; margin-bottom:6px; }
+  .measure-row label { font-size:11px; font-weight:600; width:50px; color:#666; text-transform:uppercase; letter-spacing:.5px; }
+  [data-theme="dark"] .measure-row label { color:#aaa; }
+  .measure-row input { border:none; border-bottom:1px solid var(--rule); width:60px; font-family:'Barlow',sans-serif; font-size:13px; font-weight:600; text-align:center; outline:none; padding:2px 0; background:transparent; color:var(--ink); }
+  .measure-row input:focus { border-bottom-color:var(--accent); }
+  .measure-row .unit { font-size:10px; color:var(--meta-color); font-weight:600; }
+  .measure-row select { border:none; border-bottom:1px solid var(--rule); background:transparent; font-family:'Barlow',sans-serif; font-size:11px; color:var(--ink); outline:none; cursor:pointer; }
+
+  /* ── Comments ── */
+  .comments-section { padding:10px 12px; border-bottom:1px solid var(--rule); }
+  .auto-expand { width:100%; min-height:75px; border:1px solid var(--rule); border-radius:2px; font-family:'Barlow',sans-serif; font-size:13px; padding:8px; resize:none; outline:none; background:var(--page-bg); color:var(--ink); line-height:1.6; overflow:hidden; display:block; }
+  .auto-expand:focus { border-color:var(--accent); }
+  .concerns-area { background:#fffdf5 !important; }
+  [data-theme="dark"] .concerns-area { background:#2e2a1a !important; }
+  .overflow-notice { display:none; background:#fff3cd; border:1px solid #ffc107; border-radius:2px; padding:5px 10px; font-size:11px; font-weight:600; color:#856404; margin-bottom:6px; }
+  .print-comments { display:none; white-space:pre-wrap; border:1px solid #ccc; background:white !important; padding:6px; line-height:1.4; font-size:11px; min-height:54px; }
+  .inline-note-input { border:none; border-bottom:1px solid var(--rule); background:transparent; font-family:'Barlow',sans-serif; font-size:11px; font-weight:600; color:var(--ink); outline:none; padding:2px 0; min-width:150px; }
+
+  /* ── Footer ── */
+  .footer { display:grid; grid-template-columns:1fr 180px; border-top:2px solid var(--ink); padding:12px; gap:16px; align-items:start; }
+  /* Signature pad always renders on a white pad with black ink — matches
+     how a real signature behaves and guarantees it prints darkly regardless
+     of the theme the tech drew it in. */
+  .sig-canvas { border-bottom:2px solid var(--ink); display:block; cursor:crosshair; touch-action:none; width:100%; height:70px; background:#ffffff; }
+  .sig-clear-btn { font-size:10px; color:var(--meta-color); background:none; border:none; cursor:pointer; padding:2px 0; font-family:'Barlow',sans-serif; }
+  .sig-clear-btn:hover { color:var(--accent); }
+  .status-group { display:flex; flex-direction:column; gap:8px; margin-top:8px; }
+  .status-item { display:flex; align-items:center; gap:8px; padding:6px 10px; border:1px solid var(--rule); border-radius:4px; background:var(--page-bg); }
+  .status-item input[type="checkbox"] { width:18px; height:18px; accent-color:var(--accent); flex-shrink:0; }
+  .status-item label { font-family:'Barlow Condensed',sans-serif; font-size:13px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:#555; flex:1; cursor:pointer; }
+  [data-theme="dark"] .status-item label { color:#bbb; }
+  .status-item.ready.active { background:#d4edda; border-color:#b7dfbf; }
+  .status-item.ready.active label { color:#155724; }
+  .status-item.lockout.active { background:#f8d7da; border-color:#efb5bc; }
+  .status-item.lockout.active label { color:#721c24; }
+  .status-item.parts.active { background:#fff3cd; border-color:#ffe08a; }
+  .status-item.parts.active label { color:#856404; }
+
+  /* ── Equipment picker ── */
+  .equipment-picker { position:relative; }
+  .equipment-picker input { padding-right:24px; }
+  .equipment-clear { position:absolute; right:0; top:1px; border:none; background:transparent; color:#777; font-size:18px; line-height:1; cursor:pointer; padding:2px 0 2px 8px; display:none; }
+  .equipment-clear:hover { color:var(--accent); }
+  .equipment-results { position:absolute; top:calc(100% + 6px); left:0; right:0; max-height:240px; overflow-y:auto; border:1px solid var(--rule); background:var(--modal-bg); box-shadow:0 10px 24px rgba(0,0,0,.18); border-radius:4px; z-index:50; }
+  .equipment-option, .equipment-empty { padding:9px 10px; border-bottom:1px solid var(--check-item-border); font-size:12px; color:var(--ink); }
+  .equipment-option:last-child, .equipment-empty:last-child { border-bottom:none; }
+  .equipment-option { cursor:pointer; }
+  .equipment-option:hover, .equipment-option.active { background:#fff4f2; }
+  [data-theme="dark"] .equipment-option:hover, [data-theme="dark"] .equipment-option.active { background:#3a2020; }
+  .equipment-option .equipment-code { display:block; font-weight:700; color:var(--ink); }
+  .equipment-option .equipment-desc { display:block; color:var(--meta-color); margin-top:2px; }
+  .equipment-meta { margin-top:6px; font-size:10px; color:var(--meta-color); min-height:12px; }
+
+  /* ── Credit ── */
+  .page-credit { text-align:center; padding:8px; font-size:10px; color:var(--meta-color); border-top:1px solid var(--rule); }
+  .page-credit a { color:var(--accent); text-decoration:none; font-weight:600; }
+  .page-credit a:hover { text-decoration:underline; }
+
+  /* ── Modals ── */
+  .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:200; display:flex; align-items:flex-start; justify-content:center; padding-top:60px; }
+  .modal-overlay[hidden] { display:none; }
+  .modal-panel { background:var(--modal-bg); color:var(--ink); width:700px; max-width:96vw; max-height:80vh; border-radius:6px; box-shadow:0 12px 40px rgba(0,0,0,.35); display:flex; flex-direction:column; overflow:hidden; }
+  .modal-header { display:flex; align-items:center; justify-content:space-between; padding:14px 18px; border-bottom:1px solid var(--rule); background:var(--section-header-bg); flex-shrink:0; }
+  .modal-title { font-family:'Barlow Condensed',sans-serif; font-size:16px; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:var(--ink); }
+  .modal-close { background:none; border:none; font-size:20px; cursor:pointer; color:var(--meta-color); padding:0 4px; line-height:1; }
+  .modal-close:hover { color:var(--accent); }
+  .modal-body { padding:16px 18px; overflow-y:auto; flex:1; }
+
+  /* ── PIN ── */
+  .pin-overlay { position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:300; display:flex; align-items:center; justify-content:center; }
+  .pin-overlay[hidden] { display:none; }
+  .pin-panel { background:var(--modal-bg); width:300px; border-radius:6px; box-shadow:0 8px 32px rgba(0,0,0,.35); overflow:hidden; }
+  .pin-header { background:#1a1a1a; padding:14px 18px; }
+  .pin-header-title { font-family:'Barlow Condensed',sans-serif; font-size:14px; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:#fff; }
+  .pin-body { padding:18px; }
+  .pin-body label { display:block; font-size:11px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:var(--meta-color); margin-bottom:8px; }
+  .pin-input { width:100%; border:1px solid var(--rule); border-radius:3px; padding:8px 10px; font-family:'Barlow',sans-serif; font-size:18px; letter-spacing:6px; text-align:center; background:var(--page-bg); color:var(--ink); outline:none; }
+  .pin-input:focus { border-color:var(--accent); }
+  .pin-error { color:var(--accent); font-size:11px; margin-top:6px; min-height:16px; font-weight:600; }
+  .pin-actions { display:flex; gap:8px; margin-top:14px; }
+
+  /* ── Tables ── */
+  .data-table { width:100%; border-collapse:collapse; font-size:12px; }
+  .data-table th { padding:7px 10px; text-align:left; font-size:10px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:var(--meta-color); border-bottom:2px solid var(--rule); white-space:nowrap; }
+  .data-table td { padding:8px 10px; border-bottom:1px solid var(--check-item-border); color:var(--ink); vertical-align:middle; }
+  .data-table tr:last-child td { border-bottom:none; }
+  .data-table tr:hover td { background:var(--section-header-bg); }
+
+  /* ── Form rows ── */
+  .form-row { display:flex; gap:10px; margin-bottom:10px; align-items:flex-end; flex-wrap:wrap; }
+  .form-field { display:flex; flex-direction:column; gap:4px; flex:1; min-width:80px; }
+  .form-field label { font-size:10px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:var(--meta-color); }
+  .form-field input, .form-field select { border:1px solid var(--rule); border-radius:3px; padding:6px 8px; font-family:'Barlow',sans-serif; font-size:12px; background:var(--page-bg); color:var(--ink); outline:none; }
+  .form-field input:focus, .form-field select:focus { border-color:var(--accent); }
+
+  /* ── Badges ── */
+  .badge { display:inline-block; padding:2px 8px; border-radius:10px; font-size:10px; font-weight:700; letter-spacing:.5px; text-transform:uppercase; }
+  .badge-green { background:#d4edda; color:#155724; }
+  .badge-red { background:#f8d7da; color:#721c24; }
+  .badge-yellow { background:#fff3cd; color:#856404; }
+  .badge-gray { background:#e9ecef; color:#495057; }
+
+  /* ── Action buttons ── */
+  .action-btn { font-family:'Barlow Condensed',sans-serif; font-size:11px; font-weight:700; letter-spacing:.5px; padding:3px 9px; border:1px solid var(--rule); border-radius:2px; background:var(--page-bg); color:var(--ink); cursor:pointer; white-space:nowrap; }
+  .action-btn:hover { border-color:var(--accent); color:var(--accent); }
+  .action-btn.danger:hover { background:#f8d7da; }
+
+  /* ── Empty state ── */
+  .empty-state { text-align:center; padding:32px 16px; color:var(--meta-color); font-size:13px; }
+
+  /* ── Print ── */
+  @media print {
+    /* Force light-theme colors regardless of user's current theme,
+       so PDFs are always legible ink on white paper. */
+    :root, [data-theme="dark"] {
+      --ink:#1a1a1a !important; --rule:#c0c0c0 !important; --accent:#c0392b !important;
+      --bg:#ffffff !important; --page-bg:#ffffff !important; --modal-bg:#ffffff !important;
+      --section-header-bg:#f0eeea !important; --check-item-border:#ebebeb !important;
+      --meta-color:#555 !important; --label-color:#666 !important;
+    }
+    html, body { background:white !important; color:#1a1a1a !important; }
+    body { padding:0; font-size:10px; }
+    input, textarea, select { color:#1a1a1a !important; background:transparent !important; }
+    [data-theme="dark"] .section-header, [data-theme="dark"] .status-item label,
+    [data-theme="dark"] .measure-row label { color:#555 !important; }
+    [data-theme="dark"] .concerns-area { background:#fffdf5 !important; }
+    [data-theme="dark"] .sig-canvas { background:white !important; }
+
+    .toolbar, .modal-overlay, .pin-overlay { display:none !important; }
+    .page-wrap { padding:0; }
+    .page { box-shadow:none; border:none; max-width:100%; }
+    .header { padding:8px 12px 8px 18px; }
+    .header-title { font-size:18px; }
+    .header-logo { display:block !important; visibility:visible !important; height:54px !important; width:auto !important; image-rendering:-webkit-optimize-contrast; }
+    .top-info { grid-template-columns:1fr 1fr 1fr 120px; }
+    .info-cell { padding:4px 8px; }
+    .info-cell label { font-size:7px; }
+    .info-cell input { font-size:10px; }
+    .section-header { padding:4px 10px; font-size:10px; page-break-after:avoid; }
+    .check-item { padding:4px 8px; gap:6px; }
+    .check-item .check-label { font-size:10px; }
+    .measure-group { padding:8px 10px; }
+    .measure-title { font-size:10px; margin-bottom:6px; }
+    .measure-row { margin-bottom:4px; gap:8px; }
+    .measure-row label { font-size:10px; width:44px; }
+    .measure-row input { font-size:11px; width:52px; }
+    .comments-section { padding:8px 10px; }
+    .auto-expand { overflow:visible; height:auto !important; min-height:54px; border:1px solid #ccc; background:white !important; padding:6px; line-height:1.35; font-size:11px; }
+    .is-printing .auto-expand { display:none !important; }
+    .is-printing .print-comments { display:block !important; }
+    .overflow-notice, .equipment-results, .equipment-clear, .equipment-meta { display:none !important; }
+    .status-item { padding:5px 8px; background:white !important; }
+    .status-item.active.ready   { background:#d4edda !important; }
+    .status-item.active.lockout { background:#f8d7da !important; }
+    .status-item.active.parts   { background:#fff3cd !important; }
+    .carb-box { margin:6px 10px; padding:8px 10px; }
+    .sig-clear-btn, .page-credit { display:none; }
+    * { -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Toolbar -->
+<div class="toolbar">
+  <div class="toolbar-brand">
+    <img class="toolbar-brand-icon" src="./assets/icon.png" alt="">
+    <span class="toolbar-brand-name">SFE Service Record</span>
+  </div>
+  <div class="toolbar-sep"></div>
+  <button class="tb-btn" onclick="openEquipmentManager()">&#9881; Equipment</button>
+  <button class="tb-btn" onclick="openHistory()">&#128196; History</button>
+  <button class="tb-btn" onclick="openMileage()">&#128663; Mileage</button>
+  <button class="tb-btn" onclick="openRecords()">&#128269; Records</button>
+  <button class="tb-btn" onclick="uploadScan()" title="Upload a phone photo or scan of a paper service record">&#128247; Upload</button>
+  <button class="tb-btn" onclick="openSettings()">&#128193; SharePoint</button>
+  <div class="toolbar-spacer"></div>
+  <span id="sharepoint-status">Not configured</span>
+  <div class="toolbar-sep"></div>
+  <label class="dark-toggle-wrap" title="Toggle dark mode">
+    <span class="dark-toggle-label">Dark</span>
+    <input type="checkbox" id="dark-toggle-chk" onchange="toggleDarkMode(this.checked)">
+    <span class="dark-toggle-track"><span class="dark-toggle-thumb"></span></span>
+  </label>
+  <div class="toolbar-sep"></div>
+  <button class="tb-btn tb-btn-secondary" onclick="clearForm()">&#43; New Record</button>
+  <button class="tb-btn tb-btn-primary" onclick="finish()">&#10003; Save &amp; Print</button>
+</div>
+
+<!-- PIN overlay -->
+<div class="pin-overlay" id="pin-overlay" hidden>
+  <div class="pin-panel">
+    <div class="pin-header"><div class="pin-header-title">Admin PIN Required</div></div>
+    <div class="pin-body">
+      <label for="pin-input">Enter PIN</label>
+      <input type="password" id="pin-input" class="pin-input" maxlength="10" inputmode="numeric" autocomplete="off">
+      <div class="pin-error" id="pin-error"></div>
+      <div class="pin-actions">
+        <button class="tb-btn tb-btn-primary" style="flex:1" onclick="submitPin()">Unlock</button>
+        <button class="tb-btn" style="flex:1" onclick="cancelPin()">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Equipment Manager modal -->
+<div class="modal-overlay" id="equip-modal" hidden>
+  <div class="modal-panel" style="width:820px">
+    <div class="modal-header">
+      <span class="modal-title">&#9881; Equipment Manager</span>
+      <button class="modal-close" onclick="closeModal('equip-modal')">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div style="margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid var(--rule)">
+        <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--meta-color);margin-bottom:10px">Add / Edit Equipment</div>
+        <div class="form-row">
+          <div class="form-field" style="max-width:120px"><label>Unit #</label><input type="text" id="eq-code" placeholder="20001"></div>
+          <div class="form-field"><label>Description</label><input type="text" id="eq-desc" placeholder="Ford F-550 Utility Truck"></div>
+          <div class="form-field" style="max-width:80px"><label>Year</label><input type="text" id="eq-year" placeholder="2022"></div>
+          <div class="form-field" style="max-width:100px"><label>Make</label><input type="text" id="eq-make" placeholder="Ford"></div>
+          <div class="form-field"><label>Model</label><input type="text" id="eq-model" placeholder="F-550 XL"></div>
+          <div class="form-field"><label>VIN (Last 8)</label><input type="text" id="eq-vin" placeholder="XXXXXXXX" maxlength="17"></div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:6px">
+          <button class="tb-btn tb-btn-primary" onclick="saveEquipEntry()">Save Entry</button>
+          <button class="tb-btn" onclick="clearEquipForm()">Clear</button>
+          <span id="equip-form-msg" style="font-size:11px;color:var(--meta-color);align-self:center"></span>
+        </div>
+      </div>
+      <div style="margin-bottom:10px">
+        <input type="text" id="equip-search" placeholder="Search equipment..." style="border:1px solid var(--rule);border-radius:3px;padding:6px 10px;width:100%;font-family:'Barlow',sans-serif;font-size:12px;background:var(--page-bg);color:var(--ink);outline:none" oninput="renderEquipTable()">
+      </div>
+      <div style="overflow-x:auto">
+        <table class="data-table">
+          <thead><tr><th>Unit #</th><th>Description</th><th>Year</th><th>Make</th><th>Model</th><th>VIN</th><th></th></tr></thead>
+          <tbody id="equip-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- History modal -->
+<div class="modal-overlay" id="history-modal" hidden>
+  <div class="modal-panel">
+    <div class="modal-header">
+      <span class="modal-title">&#128196; Service History</span>
+      <button class="modal-close" onclick="closeModal('history-modal')">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div style="margin-bottom:10px">
+        <input type="text" id="history-search" placeholder="Search by equipment, tech, job #..." style="border:1px solid var(--rule);border-radius:3px;padding:6px 10px;width:100%;font-family:'Barlow',sans-serif;font-size:12px;background:var(--page-bg);color:var(--ink);outline:none" oninput="renderHistory()">
+      </div>
+      <div id="history-content"><div class="empty-state">Loading...</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- Mileage modal -->
+<div class="modal-overlay" id="mileage-modal" hidden>
+  <div class="modal-panel">
+    <div class="modal-header">
+      <span class="modal-title">&#128663; Mileage Tracking</span>
+      <button class="modal-close" onclick="closeModal('mileage-modal')">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div style="margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--rule)">
+        <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--meta-color);margin-bottom:8px">Log Mileage Entry</div>
+        <div class="form-row">
+          <div class="form-field" style="max-width:140px"><label>Unit #</label><input type="text" id="mil-code" placeholder="20001"></div>
+          <div class="form-field" style="max-width:120px"><label>Date</label><input type="date" id="mil-date"></div>
+          <div class="form-field" style="max-width:100px"><label>Miles In</label><input type="text" id="mil-in" placeholder="000000"></div>
+          <div class="form-field" style="max-width:100px"><label>Miles Out</label><input type="text" id="mil-out" placeholder="000000"></div>
+          <div class="form-field"><label>Tech</label><input type="text" id="mil-tech" placeholder="Name"></div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:6px">
+          <button class="tb-btn tb-btn-primary" onclick="saveMileageEntry()">Log Entry</button>
+          <span id="mileage-msg" style="font-size:11px;color:var(--meta-color);align-self:center"></span>
+        </div>
+      </div>
+      <div style="margin-bottom:10px">
+        <input type="text" id="mileage-search" placeholder="Filter by unit #..." style="border:1px solid var(--rule);border-radius:3px;padding:6px 10px;width:300px;font-family:'Barlow',sans-serif;font-size:12px;background:var(--page-bg);color:var(--ink);outline:none" oninput="renderMileage()">
+      </div>
+      <div id="mileage-content"><div class="empty-state">Loading...</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- Records modal -->
+<div class="modal-overlay" id="records-modal" hidden>
+  <div class="modal-panel">
+    <div class="modal-header">
+      <span class="modal-title">&#128269; Past Records</span>
+      <button class="modal-close" onclick="closeModal('records-modal')">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div style="margin-bottom:10px;display:flex;gap:8px;align-items:center">
+        <input type="text" id="records-search" placeholder="Search by file name..." style="border:1px solid var(--rule);border-radius:3px;padding:6px 10px;flex:1;font-family:'Barlow',sans-serif;font-size:12px;background:var(--page-bg);color:var(--ink);outline:none" oninput="renderRecords()">
+        <button class="tb-btn" onclick="loadRecords()">&#8635; Refresh</button>
+      </div>
+      <div id="records-content"><div class="empty-state">Click Refresh to scan the SharePoint folder.</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- Main form -->
+<div class="page-wrap"><div class="page">
+
+  <div class="header">
+    <img class="header-logo" src="./assets/icon.png" alt="St. Francis Electric">
+    <div class="header-title">Equipment Repair Record</div>
+  </div>
+
+  <div class="top-info">
+    <div class="info-cell"><label>Date</label><input type="date" id="date"></div>
+    <div class="info-cell">
+      <label>Equipment #</label>
+      <div class="equipment-picker" id="equipment-picker">
+        <input type="text" id="equipment-input" placeholder="Search unit # or description" autocomplete="off" spellcheck="false">
+        <button type="button" class="equipment-clear" id="equipment-clear" aria-label="Clear">&times;</button>
+        <div class="equipment-results" id="equipment-results" hidden></div>
+      </div>
+      <div class="equipment-meta" id="equipment-meta">Type a unit number, make, or description.</div>
+    </div>
+    <div class="info-cell"><label>Job #</label><input type="text" id="job-number" placeholder="JOB-0000"></div>
+    <div class="info-cell"><label>Technician</label><input type="text" id="technician" placeholder="Name"></div>
+  </div>
+
+  <div class="vehicle-row">
+    <div class="info-cell"><label>Year</label><input type="text" id="equipment-year" placeholder="20XX"></div>
+    <div class="info-cell"><label>Make</label><input type="text" id="equipment-make" placeholder="Ford"></div>
+    <div class="info-cell"><label>Model</label><input type="text" id="equipment-model" placeholder="F-350"></div>
+    <div class="info-cell"><label>VIN (Last 8)</label><input type="text" id="equipment-vin" placeholder="XXXXXXXX" maxlength="17"></div>
+    <div class="info-cell"><label>Mileage In</label><input type="text" id="mileage-in" placeholder="000000"></div>
+    <div class="info-cell"><label>Mileage Out</label><input type="text" id="mileage-out" placeholder="000000"></div>
+  </div>
+
+  <div class="section-header">Driver's Concerns</div>
+  <div class="comments-section">
+    <textarea class="auto-expand concerns-area" id="driver-concerns" placeholder="Document what the driver reported — noises, warning lights, performance issues, requests..."></textarea>
+    <div class="print-comments"></div>
+  </div>
+
+  <div class="section-header">Inspection Checklist</div>
+  <div class="checklist-grid">
+    <div class="check-item"><input type="checkbox"><span class="check-label">Engine Oil</span><select><option>OK</option><option>Check</option><option>Low</option><option>Changed</option><option>N/A</option></select></div>
+    <div class="check-item"><input type="checkbox"><span class="check-label">Coolant</span><select><option>OK</option><option>Check</option><option>Low</option><option>Flush</option><option>N/A</option></select></div>
+    <div class="check-item"><input type="checkbox"><span class="check-label">Trans Fluid</span><select><option>OK</option><option>Check</option><option>Low</option><option>Changed</option><option>N/A</option></select></div>
+    <div class="check-item"><input type="checkbox"><span class="check-label">Brake Fluid</span><select><option>OK</option><option>Check</option><option>Low</option><option>Flush</option><option>N/A</option></select></div>
+    <div class="check-item"><input type="checkbox"><span class="check-label">Power Steering</span><select><option>OK</option><option>Check</option><option>Low</option><option>Flush</option><option>N/A</option></select></div>
+    <div class="check-item"><input type="checkbox"><span class="check-label">Diff / Transfer</span><select><option>OK</option><option>Check</option><option>Low</option><option>Changed</option><option>N/A</option></select></div>
+    <div class="check-item"><input type="checkbox"><span class="check-label">Air Filter</span><select><option>OK</option><option>Check</option><option>Replace</option><option>Replaced</option><option>N/A</option></select></div>
+    <div class="check-item"><input type="checkbox"><span class="check-label">Fuel Filter</span><select><option>OK</option><option>Check</option><option>Replace</option><option>Replaced</option><option>N/A</option></select></div>
+    <div class="check-item"><input type="checkbox"><span class="check-label">Cabin Filter</span><select><option>OK</option><option>Check</option><option>Replace</option><option>Replaced</option><option>N/A</option></select></div>
+    <div class="check-item"><input type="checkbox"><span class="check-label">Wiper Blades</span><select><option>OK</option><option>Check</option><option>Replace</option><option>Replaced</option><option>N/A</option></select></div>
+    <div class="check-item"><input type="checkbox"><span class="check-label">Battery</span><select><option>OK</option><option>Check</option><option>Weak</option><option>Replace</option><option>N/A</option></select></div>
+    <div class="check-item"><input type="checkbox"><span class="check-label">Belts / Hoses</span><select><option>OK</option><option>Check</option><option>Worn</option><option>Replace</option><option>N/A</option></select></div>
+    <div class="check-item"><input type="checkbox"><span class="check-label">Lights</span><select><option>OK</option><option>Check</option><option>Out</option><option>Replaced</option><option>N/A</option></select></div>
+    <div class="check-item"><input type="checkbox"><span class="check-label">Alignment</span><select><option>OK</option><option>Check</option><option>Needed</option><option>Done</option><option>N/A</option></select></div>
+    <div class="check-item"><input type="checkbox"><span class="check-label">Exhaust</span><select><option>OK</option><option>Check</option><option>Leaking</option><option>Replace</option><option>N/A</option></select></div>
+    <div class="check-item"><input type="checkbox"><span class="check-label">Suspension</span><select><option>OK</option><option>Check</option><option>Worn</option><option>Replace</option><option>N/A</option></select></div>
+    <div class="check-item"><input type="checkbox"><span class="check-label">DPF / DEF</span><select><option>OK</option><option>Check</option><option>Low</option><option>Regen</option><option>N/A</option></select></div>
+    <div class="check-item"><input type="checkbox"><span class="check-label">Tire Pressure Set</span><select><option>Check</option><option>Done</option><option>N/A</option></select></div>
+    <div class="check-item"><input type="checkbox"><span class="check-label">Hydraulic System</span><select><option>OK</option><option>Check</option><option>Leak</option><option>Low Fluid</option><option>Repair</option><option>N/A</option></select></div>
+    <div class="check-item"><span class="check-label">Other 1</span><input type="text" class="inline-note-input" placeholder="Special equipment item"><select><option>OK</option><option>Check</option><option>Repair</option><option>Replace</option><option>N/A</option></select></div>
+    <div class="check-item"><span class="check-label">Other 2</span><input type="text" class="inline-note-input" placeholder="Special equipment item"><select><option>OK</option><option>Check</option><option>Repair</option><option>Replace</option><option>N/A</option></select></div>
+  </div>
+
+  <div class="section-header">Safety Devices</div>
+  <div class="checklist-grid">
+    <div class="check-item"><input type="checkbox"><span class="check-label">Fire Extinguisher</span><select><option>OK</option><option>Check</option><option>Low Charge</option><option>Expired</option><option>Missing</option><option>Replaced</option><option>N/A</option></select></div>
+    <div class="check-item"><input type="checkbox"><span class="check-label">Warning Triangles</span><select><option>OK</option><option>Check</option><option>Damaged</option><option>Missing</option><option>Replaced</option><option>N/A</option></select></div>
+    <div class="check-item"><input type="checkbox"><span class="check-label">Back-up Alarm</span><select><option>OK</option><option>Check</option><option>Not Working</option><option>Repaired</option><option>N/A</option></select></div>
+    <div class="check-item"><input type="checkbox"><span class="check-label">Horn</span><select><option>OK</option><option>Check</option><option>Not Working</option><option>Repaired</option><option>N/A</option></select></div>
+    <div class="check-item"><span class="check-label">Other</span><input type="text" class="inline-note-input" placeholder="Specify device"><select><option>OK</option><option>Check</option><option>Expired</option><option>Missing</option><option>Replaced</option><option>N/A</option></select></div>
+  </div>
+
+  <div class="carb-box">
+    <div class="measure-title">CARB Clean Truck Check (Smoke Test)</div>
+    <div class="measure-row">
+      <label>Status</label>
+      <select style="width:220px"><option>Check</option><option>N/A</option><option>Completed — PASS</option><option>Completed — FAIL</option><option>Not Due</option><option>Readiness Not Completed</option></select>
+    </div>
+    <div class="measure-row" style="margin-top:6px">
+      <label>Method</label>
+      <select style="width:220px"><option>OBD</option><option>J1939</option><option>J1979</option><option>NON-OBD (SAE J1667)</option></select>
+    </div>
+  </div>
+
+  <div class="section-header">Brakes &amp; Tires</div>
+  <div class="measurements">
+    <div class="measure-group">
+      <div class="measure-title">Brake Pad Thickness</div>
+      <div class="measure-row"><label>FL</label><input type="text" placeholder="—"><span class="unit">mm</span><label>FR</label><input type="text" placeholder="—"><span class="unit">mm</span></div>
+      <div class="measure-row"><label>RL</label><input type="text" placeholder="—"><span class="unit">mm</span><label>RR</label><input type="text" placeholder="—"><span class="unit">mm</span></div>
+      <div class="measure-row"><label>Rotors</label><select style="width:160px"><option>OK</option><option>Check</option><option>Surface Rust</option><option>Grooved</option><option>Warped</option><option>Replace Front</option><option>Replace Rear</option><option>Replace Both</option></select></div>
+    </div>
+    <div class="measure-group">
+      <div class="measure-title">Tire Condition / Tread Depth</div>
+      <div class="measure-row"><label>LF</label><input type="text" placeholder="—"><span class="unit">/32</span><input type="text" placeholder="PSI" style="width:52px"><span class="unit">psi</span><select style="width:92px"><option>OK</option><option>Check</option><option>Damaged</option><option>Replace</option><option>N/A</option></select></div>
+      <div class="measure-row"><label>RF</label><input type="text" placeholder="—"><span class="unit">/32</span><input type="text" placeholder="PSI" style="width:52px"><span class="unit">psi</span><select style="width:92px"><option>OK</option><option>Check</option><option>Damaged</option><option>Replace</option><option>N/A</option></select></div>
+      <div class="measure-row"><label>LR O</label><input type="text" placeholder="—"><span class="unit">/32</span><input type="text" placeholder="PSI" style="width:52px"><span class="unit">psi</span><select style="width:92px"><option>OK</option><option>Check</option><option>Damaged</option><option>Replace</option><option>N/A</option></select></div>
+      <div class="measure-row"><label>RR O</label><input type="text" placeholder="—"><span class="unit">/32</span><input type="text" placeholder="PSI" style="width:52px"><span class="unit">psi</span><select style="width:92px"><option>OK</option><option>Check</option><option>Damaged</option><option>Replace</option><option>N/A</option></select></div>
+      <div class="measure-row"><label>LR I</label><input type="text" placeholder="—"><span class="unit">/32</span><input type="text" placeholder="PSI" style="width:52px"><span class="unit">psi</span><select style="width:92px"><option>OK</option><option>Check</option><option>Damaged</option><option>Replace</option><option>N/A</option></select></div>
+      <div class="measure-row"><label>RR I</label><input type="text" placeholder="—"><span class="unit">/32</span><input type="text" placeholder="PSI" style="width:52px"><span class="unit">psi</span><select style="width:92px"><option>OK</option><option>Check</option><option>Damaged</option><option>Replace</option><option>N/A</option></select></div>
+    </div>
+  </div>
+
+  <div class="section-header">Mechanic Comments</div>
+  <div class="comments-section">
+    <div class="overflow-notice" id="overflow-notice">&#9888; Long entry — will continue onto a second printed page automatically.</div>
+    <textarea class="auto-expand" id="mechanic-comments" placeholder="Describe work performed, findings, parts installed, labor completed..."></textarea>
+    <div class="print-comments"></div>
+  </div>
+
+  <div class="section-header">Recommended Follow-Up</div>
+  <div class="comments-section">
+    <textarea class="auto-expand" id="followup-comments" placeholder="Items flagged for next service or pending approval..."></textarea>
+    <div class="print-comments"></div>
+  </div>
+
+  <div class="footer">
+    <div>
+      <div style="font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--label-color);margin-bottom:4px">Technician Signature</div>
+      <canvas class="sig-canvas" id="sig-canvas" width="520" height="60"></canvas>
+      <button class="sig-clear-btn" onclick="clearSignature()">Clear signature</button>
+      <div class="status-group">
+        <div class="status-item ready" data-status-item>
+          <input type="checkbox" id="workReady" data-status-box>
+          <label for="workReady">Ready for Service</label>
+        </div>
+        <div class="status-item lockout" data-status-item>
+          <input type="checkbox" id="lockout" data-status-box>
+          <label for="lockout">Lockout / Tagout Required</label>
+        </div>
+        <div class="status-item parts" data-status-item>
+          <input type="checkbox" id="partsHold" data-status-box>
+          <label for="partsHold">Awaiting Parts</label>
+        </div>
+      </div>
+    </div>
+    <div style="padding-left:16px;border-left:1px solid var(--rule)">
+      <div style="font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--label-color);margin-bottom:4px">Job #</div>
+      <!-- Mirrors the Job # from the top info grid (auto-synced in JS). -->
+      <div id="job-number-display" style="border-bottom:2px solid var(--ink);font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:900;color:var(--ink);letter-spacing:1px;min-height:32px;line-height:32px;">&nbsp;</div>
+      <div style="margin-top:10px;font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--label-color)">Date Out <span style="font-weight:400;color:var(--meta-color);letter-spacing:0;text-transform:none">(when returned to service)</span></div>
+      <input type="date" id="date-out" style="border:none;border-bottom:1px solid var(--rule);font-family:'Barlow',sans-serif;font-size:12px;width:100%;outline:none;background:transparent;color:var(--ink);margin-top:3px">
+    </div>
+  </div>
+
+  <div class="page-credit">Created by <a href="https://github.com/Marcus-Wh" onclick="openGitHub(event)">Marcus White</a> &mdash; St. Francis Electric Fleet Management</div>
+
+</div></div>
+
+<script>
+// ── Static equipment fallback ─────────────────────────────────────────────
+const EQUIPMENT_ASSETS_STATIC = ["1 Placeholder","10003 Dodge Ram 1500","10007 Dodge Ram 1500","10009 Dodge Ram 1500","10011 Dodge Ram 1500","10012 Ford F-150 Pick Up","10014 Dodge Ram 1500","10016 Chevrolet Silverado 2500","10017 GMC P/U","10018 GMC T7500","10019 Dodge Ram 2500","10021 Ford F-150 Pick Up","10023 Ford F-150 Pick Up","10024 Ford F250 Pick Up","10026 Ford F-250 Pick Up","10027 Ford F-150 Pick Up","10028 Ford F-150 Pick Up","10029 Mazda","10030 Ford F-150","10031 Ford F-150","10032 Ford F-150","10033 Ford F-250","10034 Ford F-250","10035 Ford F-250 Pick up","10037 FORD F-150 XLT PICK-UP","10038 FORD F-150 XLT PICK-UP","10039 FORD F-150 XLT PICK-UP","10040 FORD F-150 XLT PICK-UP","10041 FORD F-150 STX PICK-UP","10042 FORD F-150 XLT PICK-UP","10043 FORD EXPLORER Guy S","10044 FORD F-150 PICK-UP","10045 FORD EXPLORER Simon C","10046 FORD F150 PICK UP","10047 FORD F150 PICK-UP","10048 FORD F150 PICK-UP","10049 FORD F250 PICK-UP","10050 FORD F-150 XL PICK-UP","10051 FORD F-150 XLT PICK-UP","10052 FORD F-150 STX PICK-UP","10053 FORD F-150 XL PICK-UP","10054 FORD F-150 XLPICK-UP","10055 FORD F-150 STX PICK-UP","10056 FORD F-250 SD PICK-UP","10057 FORD F-350 PICK-UP","10058 FORD F-250 PICK-UP","10059 FORD F-150 PICK-UP","10060 FORD F-150 PICK-UP","10061 FORD F-150 PICK-UP","10062 FORD F-250 PICK-UP","10063 FORD F-150 PICK UP","10064 FORD F-150 PICK UP","10065 FORD F-150 PICK UP","10066 FORD F-350 PICK-UP Andy Amador","10067 FORD F-150 Lariat 4x4","10068 DODGE RAM 1500","10069 FORD F-150 PICK-UP","10070 FORD F-150 PICK-UP","10071 FORD F-150 PICK-UP","10072 FORD PICK-UP","10073 FORD F-150 PICK UP","10074 FORD F-150 PICK UP","1010 Equipment Example","1101 Ford F-450","1102 Ford F-450","1106 Flatbed Ford","1108 Flatbed Ford","1109 Ford F-450","1110 FORD F-350 Box van","1111 Ford F-250","1112 Dump Truck Ford","1118 Ford F-150","1119 GMC","1120 Ford F-350","1123 Dump Truck Chev","1124 Dump Truck Chev","1125 Dump Truck GMC","1128 Dodge","1129 Ford F-450","1136 GMC","1138 Ford F-250","1140 Ford F-550","1147 Ford F-350","1152 Ford F-450","1155 Chevy","1156 Ford F-150","1160 Flatbed Ford","1162 Ford F-550","1169 Ford F-350","1171 Ford F-250","1176 Ford","1178 Ford F-250","1179 Dodge","1182 Ford F-150","1183 Ford F-150","1307 Forklift Champ","1309 HOT MELT","131 FLATBED TRAILER","1312 Camper RV8918","1316 Boom Truck","1318 Vaccum Truck","1319 Compressor","1323 WATER TRUCK","1332 Cozad Flat Bed","1335 FLATBED","1339 Dump Truck Ford","1342 CAMPER TRAILER","1343 THOR TRAILER","1346 Forklift","1355 Flatbed Trailer","1358 FLATBED","1359 Dump Truck","1361 Dump Truck GMC","1362 Dump Truck Ford","1364 SEADOO TRAILER","1369 Sweeper Attch","1371 Compressor","1372 Trailer Vacuum","1376 Generator","1377 Compressor","1378 Compressor","1379 Light tower","1383 HDPE TRAILER","1384 Box Van","1385 Boom Truck","1387 Chevy Truck","1388 Dump Truck Ford","1391 Trailer Wire spool","1392 Trailer Wire spool","1395 Trailer Wire spool","1398 PARKER TRAILER","1399 Truck Transport","1400 Dump Truck Ford","1401 INERSOL RAND COMP","1403 TILT","1404 TRAILER FLAT BED","1405 Trailer flatbed","1407 Trailer","1408 Trailer for Equipment","1409 Water Trailer","1411 5TH WHEEL TRAILER","1412 Forklift JBC","1417 ENCLOSED TRAILER","1418 MONTANA TANK SILO TRAILER","1421 Forklift","1422 Forklift","1424 Dump Truck Ford F350","1425 Dump Truck Ford","1437 Dump Truck GMC","1439 GMC","1444 Ford F-550","1447 Compressor Ingersol Rand","1448 Compressor Ingersol Rand","1449 Compressor Ingersol Rand","1450 Sweeper","1452 Dump Truck Ford F550","1453 Flatbed Ford","1455 Flatbed Ford","1456 Trailer-Wire","1461 Flatbed Trailer","1462 Eager Beaver Trailer","1466 Trailer Water","1467 DIABLO EQUIPMENT Trailer","1469 Compressor","1470 Flatbed","1473 DIRT TRAILER","1475 Dump Truck Ford","1476 MILLER FLATBED TRAILER 2 AXL","1477 HOME MADE LITTLE WHITE TRAILER","1478 Flat bed Trl 1 axl","1479 CEMENT BUGGEY","1480 CEMENT BUGGY","1481 Dump Truck Ford","1483 BOAT TRAILER","1484 Dump Truck Ford","1486 Trailer Vacuum","1487 Vaccum machine","1490 Van Threading","1492 Flatbed Ford","1494 Ford F-550","1496 Scissor lift","1499 BOAT TRAILER","1500 Ford F-450","1504 WATER TRAILER","1506 Flatbed Ford","1508 TRAILER VAN","1509 CAMPER FUN RUNNER","1512 Ford F-450","1513 Flatbed Ford","1515 Flatbed Ford","1516 FORD E-350 Van Threading","1520 Trailer","1521 Trailer","1522 Bucket Truck","1523 Flatbed Chevy","1524 Trailer-vacuum","1525 Quad runner","1529 HDPE Trailer BUTLER Woodland","1530 CONCRETE SAW TRAILER","1531 Compressor Atlas","1532 Compressor Atlas copco","1533 Ford F-550","1535 Bucket Truck","1536 Compressor Ingersol Rand","1537 Compressor Ingersol Rand","1538 Trailer for pole","1539 Compressor Ingersoll Rand","1540 Compressor Ingersol Rand","1541 Ford F-550","1543 Ford F-450","1544 Ford F-450","1545 Ford F-450","1546 Freightliner","1548 Bucket Truck","1549 Bucket Truck","172 Camper","173 P/U","1773 Welder","1801 Welder Wire Feed Shop","1866 LIGHT TOWER","1867 Arrowboard","1873 Light Tower","1891 Arrow board","1892 SMALL WIRE TRAILER","196 Ford F-250","20001 Vacuum Truck","20002 Vacuum Truck","20005 Ford F-350 SD","20011 Dump Truck","20012 Flatbed Truck Ford","20017 Flatbed GMC Truck","20019 Ford F-450 Truck","20020 Flatbed Ford Truck","20021 Flatbed Ford F450 Truck","20023 Chevrolet 3500 Truck","20024 Flatbed Chevrolet 3500","20027 Flatbed Truck Chevrolet 3500","20030 Ford F-550","20038 Bucket Truck","20039 Ford F-450","20040 GMC C5500 Flatbed Truck","20041 Tow Truck","20042 Ford F-350","20046 Transport Peterbilt","20049 Ford F-250","20051 Ford F-750 Boom Truck Woodland","20052 Water Truck F750","20053 Ford Utility Truck 550 XL","20054 Ford Utility Truck F550 XL","20055 Dump Truck Ford F550 3 Yard","20056 Dump Truck Ford F550 3 YARD","20057 Dump Truck Ford F550 3 Yard","20058 Dump Truck Ford F550","20059 Ford F550 Cab Chassi 3 YARD DUMP","20060 Ford F550 XL Cab Chassi LOOPERS","20061 Ford F-250 SM UTILITY TRUCK","20062 Ford F-250 SM-Utility Truck","20063 Ford F-250 Small Utility Truck","20064 Ford F-250","20065 Ford F-250 Sm Utility Truck","20066 Ford F-250","20067 Dump Truck Ford F650","20068 Dump Truck Ford F650 5 Yard","20069 Dump Truck Ford F650 5 YD","20070 Bucket Truck","20071 Ford F-550 SAW TRUCK LOANER","20072 Ford F-550 Flatbed","20073 Flatbed F450","20074 Ford F-450","20075 Ford F-450 Loaner Eastbay","20076 Ford F-450","20077 Ford F-450","20078 Ford F-450","20079 Ford F-450","20080 FORD F-750 CRANE TRUCK","20081 Ford F-450","20082 Ford F-550 SAW TRUCK","20083 FORD DIGGER TRUCK","20084 FORD F-350 PICK-UP","20085 FORD F-350 PICK-UP","20086 FORD F-550 DUMP TRUCK","20087 FORD F-550","20088 FORD F-550","20089 FORD F-550","20090 KENWORTH CRANE TRUCK","20091 FORD F-550 UTILITY TRUCK","20092 FORD F-550","20093 FORD F-650 DUMPBED TRUCK","20094 FORD F-550","20095 FORD F-550 XL CONTRACTOR TRUCK","20096 FORD F-550 XL CONTRACTOR TRUCK","20097 FORD F-550 XL COMBO TRUCK","20098 FORD F-550 COMBO TRUCK","20099 FORD F-550 XL CONTRACTOR TRUCK","20100 FORD F-550 XL CONTRACTOR TRUCK","20101 FORD F-550 XL SAW TRUCK","20102 FORD F-550 XL CONTRACTOR TRUCK","20103 FORD F-550 XL SAW TRUCK","20104 FORD F-550 FLATBED TRUCK","20105 FORD F-550 SAW TRUCK","20106 FORD F-650 DUMP TRUCK","20107 FORD F-550 FLATBED","20108 FORD F-550 FLATBED TRUCK","20109 FORD F-550 DUMP TRUCK","20110 FORD F-550 DUMP TRUCK","20111 PETERBILT BORE RIG","20112 FORD F-550 XL MECHANIC TRUCK","20113 FORD F-550 XL COMBO BODY","20114 FORD F-550 FLATBED TRUCK","20115 FORD F350 XLT PICK-UP TRUCK","20116 FORD F-350 XLT PICK-UP TRUCK","20117 FORD F-350 XLT PICK-UP TRUCK","20118 INTERNATIONAL DURA STAR FLATBED TRUCK","20119 FORD F-550 XL FLATBED TRUCK","20120 FORD F-650 S.D DUMP TRUCK","20121 FORD F-650 S.D DUMP TRUCK","20122 FORD F-550 XL UTILITY TRUCK","20123 FORD F-550 XL UTILITY TRUCK","20124 FORD F-550 XL COMBO TRUCK","20125 FORD F-350 XLT CREW CAB TRUCK","20126 FORD F-550 XL FLATBED TRUCK","20127 FORD F-550 XL FLATBED TRUCK","20128 FORD F-550 XL COMBO TRUCK","20129 FORD F-550 XL UTILITY TRUCK","20130 FORD F-550 XL UTILITY TRUCK","20131 FORD F-550 XL UTILITY TRUCK","20132 FORD F-550 XL UTILITY TRUCK","20133 FORD F-650 S.D DUMP TRUCK","20134 FORD F-650 S.D FLATBED TRUCK","20135 FORD F-550 XL DUMP TRUCK","20136 FORD F-550 XL DUMP TRUCK","20137 FORD F-650 S.D FLATBED TRUCK","20138 FORD F-550 XL BUCKET TRUCK","20139 FORD F-550 XL BUCKET TRUCK","20140 FORD F-550 XL BUCKET TRUCK","20141 FORD F-550 XL BUCKET TRUCK","20142 FORD F-550 XL BUCKET TRUCK","20143 FORD F-550 XL BUCKET TRUCK","20144 FORD F-550 XL BUCKET TRUCK","20145 FORD F-550 XL BUCKET TRUCK","20146 FREIGHTLINER 10WHEEL DUMP TRUCK","20147 PETERBILT 10 WHEEL DUMP TRUCK","20148 FORD F-550 XL BUCKET TRUCK","20149 FORD F-550 XL BUCKET TRUCK","20150 FORD F-550 CONTRACTORS TRUCK","20151 FORD F-550 CONTRACTORS TRUCK","20152 FORD F-550 CONTRACTORS TRUCK","20153 FORD F-550 CONTRACTORS TRUCK","20154 FORD F-350 XL PICK-UP TRUCK","20155 FORD F-550 CONTRACTORS TRUCK","20156 PETERBILT BORE RIG","20157 FORD F-350 UTILITY TRUCK","20158 FORD F-550 UTILITY TRUCK","20159 FORD F-350 PICK-UP TRUCK","20160 FORD F-550 CONTRACTOR TRUCK","20161 FORD F-550 UTILITY TRUCK","20162 FORD F-550 DUMP TRUCK","20163 FORD F-550 DUMP TRUCK","20164 FORD F-550 CONTRACTOR TRUCK","20165 FORD F-550 CONTRACTOR TRUCK","20166 FORD F-550 CONTRACTOR TRUCK","20167 FORD F-550 CONTRACTOR TRUCK","20168 FORD F-550 DUMP TRUCK","20169 FORD F-550 UTILITY TRUCK","20170 FORD F-550 UTILITY TRUCK","20171 FORD F-550 UTILITY TRUCK","20172 FORD F-550 UTILITY TRUCK","20173 FORD F-250 UTILITY TRUCK","20174 FORD F-550 DUMP TRUCK","20175 FORD F-550 DUMP TRUCK","20176 FORD F550 DUMP TRUCK","20177 FORD F550 FLATBED TRUCK","20178 FORD F550 DUMP TRUCK","20179 FORD F350 PICK-UP TRUCK","20180 FORD F-550 DUMP TRUCK","20181 FORD F-350 PICK UP TRUCK","20182 FORD F-350 PICK UP TRUCK","20183 FORD F-550 BUCKET TRUCK","20184 DODGE RAM 550 STAKE BED TRUCK","20185 FORD F-650 VACUUM TRUCK","20186 FORD F350 PICK UP","20187 FORD F350 PICK UP","20188 FORD F650 VAC TRUCK","20189 FORD F-550 COMBO TRUCK","20190 FORD F-550 UTILITY TRUCK","20191 FREIGHTLINER DUMP TRUCK","20192 FORD F-550 CONTRACTOR TRUCK","20193 FORD F-550 CONTRACTOR TRUCK","20194 FORD F-550 DUMP TRUCK","20195 FORD F-550 BUCKET TRUCK","20196 FORD F-550 BUCKET TRUCK","20197 FORD F-650 DUMP TRUCK","20198 FORD F-550 DUMP TRUCK","20199 FORD F-350 UTILITY TRUCK","20200 FORD F-550 TRAFFIC CONTROL TRUCK","20201 FORD F-350 UTILITY TRUCK","20202 FORD F-550 DUMP TRUCK","20203 MACK TRANSPORT TRUCK","20204 FORD F-550 S.D. DUMP TRUCK","20205 FORD F-350 UTILITY TRUCK","20206 FREIGHTLINER 10 WHEEL DUMP TRUCK","20207 FORD F550 BUCKET TRUCK","20208 FORD F250 UTILITY TRUCK","20209 FORD F-550 UTILITY TRUCK","20210 FORD F550 BUCKET TRUCK","20211 FORD F550 BUCKET TRUCK","20212 FORD F550 BUCKET TRUCK","20213 FORD F550 BUCKET TRUCK","20214 10 WHEEL DUMP TRUCK","20215 Peterbilt Bore Truck","20216 BUCKET TRUCK","20217 FLATBED TRUCK","20218 10 WHEEL VACUUM TRUCK","20219 FORD F-350 PICKUP","20220 FORD F250 PICK-UP","20221 FORD F350 XL PICK-UP","20222 FORD F350 FLATBED","20223 FORD F350 UTILITY TRUCK","20224 FORD F-550 BUCKET TRUCK","20225 FORD F-550 XLT STEAKBED","60001 Piranha Iron Worker","60002 Truck Lifts","60003 Truck Lift","60005 SMOKE MACHINE","60006 TRUCKLIFT","60007 AIR COMPRESSOR","60008 SHOP TRUCK LIFTS","60009 SNAP-ON SCAN TOOL","60010 TRUCK LIFTS","60011 PORTABLE WELDER","60012 SMOKE MACHINE","60013 PRESSURE WASHER","60014 SHOP LIFTS"];
+
+let equipmentDB = [];
+let equipEditIdx = -1;
+
+function parseStatic(raw) {
+  const m = raw.trim().match(/^([A-Za-z0-9\-]+)\s+(.*)?$/);
+  const code = m ? m[1] : raw.trim();
+  const desc  = m && m[2] ? m[2].trim() : '';
+  const tokens = desc.split(/\s+/);
+  const make   = tokens[0] && /^[A-Za-z]/.test(tokens[0]) ? tokens[0] : '';
+  const model  = make ? tokens.slice(1).join(' ') : desc;
+  return { code, desc, year:'', make, model, vin:'' };
+}
+
+async function loadEquipmentDB() {
+  if (window.electronAPI) {
+    try { const l = await window.electronAPI.getEquipment(); if (l && l.length) { equipmentDB = l; return; } } catch(_) {}
+  }
+  equipmentDB = EQUIPMENT_ASSETS_STATIC.map(parseStatic);
+}
+
+// ── Equipment picker ──────────────────────────────────────────────────────
+const equipInput   = document.getElementById('equipment-input');
+const equipResults = document.getElementById('equipment-results');
+const equipClear   = document.getElementById('equipment-clear');
+const equipMeta    = document.getElementById('equipment-meta');
+let activeIdx = -1, visibleMatches = [];
+
+function escHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function score(a, q) {
+  if (!q) return 1;
+  const l = q.toLowerCase(), c = a.code.toLowerCase(), d = a.desc.toLowerCase();
+  if (c === l) return 100; if (c.startsWith(l)) return 90;
+  if (d.startsWith(l)) return 70; if ((c+' '+d).includes(l)) return 60;
+  return 0;
+}
+
+function renderPickerResults(q) {
+  const prev = visibleMatches[activeIdx] ? visibleMatches[activeIdx].code : null;
+  visibleMatches = equipmentDB.map(a => ({a, s:score(a,q)})).filter(x => x.s > 0)
+    .sort((x,y) => y.s - x.s || x.a.code.localeCompare(y.a.code)).slice(0,12).map(x => x.a);
+  activeIdx = visibleMatches.length ? Math.max(0, visibleMatches.findIndex(a => a.code === prev)) : -1;
+  equipResults.innerHTML = '';
+  if (!visibleMatches.length) {
+    equipResults.innerHTML = '<div class="equipment-empty">No match — you can still type a custom unit number.</div>';
+    equipResults.hidden = false; return;
+  }
+  visibleMatches.forEach((a, i) => {
+    const d = document.createElement('div');
+    d.className = 'equipment-option' + (i === activeIdx ? ' active' : '');
+    d.innerHTML = '<span class="equipment-code">' + escHtml(a.code) + '</span><span class="equipment-desc">' + escHtml(a.desc || 'No description') + '</span>';
+    d.addEventListener('mousedown', e => { e.preventDefault(); pickAsset(a); });
+    equipResults.appendChild(d);
+  });
+  equipResults.hidden = false;
+}
+
+function pickAsset(a) {
+  equipInput.value = a.code + (a.desc ? ' ' + a.desc : '');
+  const yr = document.getElementById('equipment-year'), mk = document.getElementById('equipment-make'), mo = document.getElementById('equipment-model'), vi = document.getElementById('equipment-vin');
+  if (yr && !yr.value && a.year)  yr.value  = a.year;
+  if (mk && !mk.value && a.make)  mk.value  = a.make;
+  if (mo && !mo.value && a.model) mo.value  = a.model;
+  if (vi && !vi.value && a.vin)   vi.value  = a.vin;
+  equipMeta.textContent = [a.make && 'Make: '+a.make, a.model && 'Model: '+a.model, a.year && 'Year: '+a.year].filter(Boolean).join(' • ') || 'Equipment selected.';
+  equipResults.hidden = true; equipClear.style.display = 'block';
+  const mc = document.getElementById('mil-code'); if (mc && !mc.value) mc.value = a.code;
+}
+
+equipInput.addEventListener('focus', () => { renderPickerResults(equipInput.value.trim()); equipClear.style.display = equipInput.value ? 'block':'none'; });
+equipInput.addEventListener('input', () => { const q = equipInput.value.trim(); equipClear.style.display = q?'block':'none'; renderPickerResults(q); if (!q) equipMeta.textContent='Type a unit number, make, or description.'; });
+equipInput.addEventListener('keydown', e => {
+  if (equipResults.hidden) return;
+  if (e.key==='ArrowDown')  { e.preventDefault(); if (visibleMatches.length) { activeIdx=(activeIdx+1)%visibleMatches.length; renderPickerResults(equipInput.value.trim()); } }
+  else if (e.key==='ArrowUp')   { e.preventDefault(); if (visibleMatches.length) { activeIdx=(activeIdx-1+visibleMatches.length)%visibleMatches.length; renderPickerResults(equipInput.value.trim()); } }
+  else if (e.key==='Enter')     { if (activeIdx>=0 && visibleMatches[activeIdx]) { e.preventDefault(); pickAsset(visibleMatches[activeIdx]); } }
+  else if (e.key==='Escape')    { equipResults.hidden=true; }
+});
+equipClear.addEventListener('click', () => { equipInput.value=''; equipClear.style.display='none'; equipResults.hidden=true; equipMeta.textContent='Type a unit number, make, or description.'; equipInput.focus(); });
+document.addEventListener('click', e => { if (!document.getElementById('equipment-picker').contains(e.target)) equipResults.hidden=true; });
+
+// ── Auto-expand textareas ─────────────────────────────────────────────────
+function autoExpand(el) { el.style.height='auto'; el.style.height=el.scrollHeight+'px'; }
+document.querySelectorAll('.auto-expand').forEach(ta => {
+  ta.addEventListener('input', function() { autoExpand(this); if (this.id==='mechanic-comments') document.getElementById('overflow-notice').style.display=this.scrollHeight>300?'block':'none'; });
+});
+
+// ── Status checkboxes ─────────────────────────────────────────────────────
+const statusBoxes = Array.from(document.querySelectorAll('[data-status-box]'));
+function syncStatus() { statusBoxes.forEach(b => b.closest('[data-status-item]').classList.toggle('active', b.checked)); }
+statusBoxes.forEach(b => b.addEventListener('change', () => { if (b.checked) statusBoxes.forEach(o => { if (o!==b) o.checked=false; }); syncStatus(); }));
+
+// ── Signature canvas (HiDPI-aware) ────────────────────────────────────────
+// Uses devicePixelRatio so strokes stay crisp on Retina/high-density screens,
+// and rescales on window resize so the drawing area always matches CSS pixels.
+(function() {
+  const canvas = document.getElementById('sig-canvas'); if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  let drawing = false, lx = 0, ly = 0;
+
+  function resize() {
+    const dpr = window.devicePixelRatio || 1;
+    const rect = canvas.getBoundingClientRect();
+    if (!rect.width || !rect.height) return;
+    // Preserve existing drawing when resizing
+    const prev = canvas.width && canvas.height
+      ? ctx.getImageData(0, 0, canvas.width, canvas.height) : null;
+    canvas.width  = Math.round(rect.width  * dpr);
+    canvas.height = Math.round(rect.height * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    if (prev) { try { ctx.putImageData(prev, 0, 0); } catch (_) {} }
+  }
+
+  function getPos(e) {
+    const r = canvas.getBoundingClientRect();
+    const s = e.touches ? e.touches[0] : e;
+    return { x: s.clientX - r.left, y: s.clientY - r.top };
+  }
+  function start(e) { e.preventDefault(); drawing = true; const p = getPos(e); lx = p.x; ly = p.y; }
+  function move(e) {
+    if (!drawing) return;
+    e.preventDefault();
+    const p = getPos(e);
+    ctx.beginPath();
+    ctx.moveTo(lx, ly);
+    ctx.lineTo(p.x, p.y);
+    // Always pure black with a thicker stroke so it survives scaling
+    // from ~520px CSS canvas to an 8.5in printed page without washing out.
+    ctx.strokeStyle = '#000000';
+    ctx.lineWidth = 2.25;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.stroke();
+    lx = p.x; ly = p.y;
+  }
+  function stop() { drawing = false; }
+
+  canvas.addEventListener('mousedown', start);
+  canvas.addEventListener('mousemove', move);
+  canvas.addEventListener('mouseup', stop);
+  canvas.addEventListener('mouseleave', stop);
+  canvas.addEventListener('touchstart', start, { passive: false });
+  canvas.addEventListener('touchmove',  move,  { passive: false });
+  canvas.addEventListener('touchend',   stop);
+
+  window.addEventListener('resize', resize);
+  window.addEventListener('DOMContentLoaded', resize);
+  if (document.readyState !== 'loading') resize();
+})();
+
+function clearSignature() {
+  const c = document.getElementById('sig-canvas'); if (!c) return;
+  const ctx = c.getContext('2d');
+  ctx.save();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.clearRect(0, 0, c.width, c.height);
+  ctx.restore();
+}
+
+// ── Print helpers ─────────────────────────────────────────────────────────
+function syncPrintComments() {
+  document.querySelectorAll('textarea.auto-expand').forEach(ta => {
+    autoExpand(ta);
+    let pd = ta.parentNode.querySelector('.print-comments');
+    if (!pd) { pd=document.createElement('div'); pd.className='print-comments'; ta.insertAdjacentElement('afterend',pd); }
+    pd.textContent = ta.value || '';
+  });
+}
+function preparePrintView() { syncPrintComments(); document.body.classList.add('is-printing'); }
+function cleanupPrintView() { document.body.classList.remove('is-printing'); }
+
+// ── Draft persistence (debounced) ─────────────────────────────────────────
+// Previously wrote to localStorage on every keystroke; on a 60-field form
+// that meant a serialize+write cycle 60+ times per second during fast typing.
+// Now coalesced to one write 400ms after the user stops editing.
+const DRAFT_KEY = 'srDraft';
+const FORM_SELECTOR = 'input:not([type=password]),select,textarea';
+let _draftTimer = null;
+
+function saveDraftNow() {
+  try {
+    const s = {};
+    document.querySelectorAll(FORM_SELECTOR).forEach((el, i) => {
+      const k = el.id || el.name || ('f' + i);
+      s[k] = el.type === 'checkbox' ? el.checked : el.value;
+    });
+    localStorage.setItem(DRAFT_KEY, JSON.stringify(s));
+  } catch (_) { /* quota/private-mode — non-fatal */ }
+}
+function saveDraft() {
+  if (_draftTimer) clearTimeout(_draftTimer);
+  _draftTimer = setTimeout(saveDraftNow, 400);
+}
+function restoreDraft() {
+  try {
+    const raw = localStorage.getItem(DRAFT_KEY); if (!raw) return;
+    const s = JSON.parse(raw);
+    document.querySelectorAll(FORM_SELECTOR).forEach((el, i) => {
+      const k = el.id || el.name || ('f' + i);
+      if (!(k in s)) return;
+      if (el.type === 'checkbox') el.checked = !!s[k];
+      else el.value = s[k] == null ? '' : s[k];
+    });
+    document.querySelectorAll('textarea').forEach(autoExpand);
+  } catch (_) {}
+}
+document.addEventListener('input',  e => { if (e.target.matches(FORM_SELECTOR)) saveDraft(); });
+document.addEventListener('change', e => { if (e.target.matches(FORM_SELECTOR)) saveDraft(); });
+// Flush pending draft on close so nothing typed in the last 400ms is lost
+window.addEventListener('beforeunload', saveDraftNow);
+
+// ── Clear form ────────────────────────────────────────────────────────────
+function clearForm(skipConfirm) {
+  if (!skipConfirm && !confirm('Start a new record? All fields will be cleared.')) return;
+  try { localStorage.removeItem('srDraft'); } catch(_) {}
+  document.querySelectorAll('input:not([type=password])').forEach(el => el.type==='checkbox'?(el.checked=false):(el.value=''));
+  document.querySelectorAll('select').forEach(el => el.selectedIndex=0);
+  document.querySelectorAll('textarea').forEach(el => { el.value=''; autoExpand(el); });
+  clearSignature();
+  equipResults.hidden=true; equipClear.style.display='none';
+  equipMeta.textContent='Type a unit number, make, or description.';
+  setDefaults();
+}
+function setDefaults() {
+  const d = document.getElementById('date');       if (d && !d.value) d.valueAsDate = new Date();
+  const t = document.getElementById('technician'); if (t && !t.value) { try { const lt = localStorage.getItem('lastTech'); if (lt) t.value = lt; } catch (_) {} }
+  syncJobDisplay();
+}
+document.getElementById('technician').addEventListener('change', function() { try { localStorage.setItem('lastTech', this.value); } catch (_) {} });
+
+// Footer "Job #" is a large read-only display that mirrors the top input
+function syncJobDisplay() {
+  const src = document.getElementById('job-number');
+  const dst = document.getElementById('job-number-display');
+  if (!src || !dst) return;
+  const v = (src.value || '').trim();
+  dst.textContent = v || ' ';
+}
+document.getElementById('job-number').addEventListener('input', syncJobDisplay);
+
+// ── Dark mode ─────────────────────────────────────────────────────────────
+function toggleDarkMode(on) {
+  document.documentElement.setAttribute('data-theme', on?'dark':'light');
+  try { localStorage.setItem('theme', on?'dark':'light'); } catch(_) {}
+}
+function loadTheme() {
+  try { if (localStorage.getItem('theme')==='dark') { document.documentElement.setAttribute('data-theme','dark'); const c=document.getElementById('dark-toggle-chk'); if(c) c.checked=true; } } catch(_) {}
+}
+
+// ── SharePoint status ─────────────────────────────────────────────────────
+async function refreshSharepointStatus() {
+  const el=document.getElementById('sharepoint-status');
+  if (!window.electronAPI) { el.textContent=''; return; }
+  try { const cfg=await window.electronAPI.getConfig(); if(cfg&&cfg.sharepointPath){el.textContent=cfg.sharepointPath;el.className='configured';}else{el.textContent='Not configured';el.className='';} } catch(_) {}
+}
+async function openSettings() {
+  if (!window.electronAPI) { alert('Settings are only available in the desktop app.'); return; }
+  const p=await window.electronAPI.pickSharepointFolder();
+  if (p) alert('SharePoint folder set to:\n'+p+'\n\nPDFs will auto-save to YYYY-MM subfolders here.');
+  refreshSharepointStatus();
+}
+
+// ── Upload paper-scan picture ─────────────────────────────────────────────
+// Tech picks an image/PDF (a phone photo of a hand-written sheet, etc.);
+// the app drops it into the SharePoint monthly folder with an auto-name
+// like  2026-04-23_20089_scan.jpg. No naming required.
+async function uploadScan() {
+  if (!window.electronAPI) { alert('Upload is only available in the desktop app.'); return; }
+  const equipment = equipInput ? equipInput.value.trim() : '';
+  const dateEl    = document.getElementById('date');
+  const date      = dateEl && dateEl.value ? dateEl.value : new Date().toISOString().slice(0, 10);
+  try {
+    const result = await window.electronAPI.uploadScan({ equipment, date });
+    if (result.ok) {
+      alert('Uploaded:\n' + result.path);
+    } else if (result.msg && result.msg !== 'Cancelled.') {
+      alert('Upload failed: ' + result.msg);
+    }
+  } catch (e) {
+    alert('Error: ' + e.message);
+  }
+}
+
+// ── Save & Print ──────────────────────────────────────────────────────────
+async function finish() {
+  const equipVal=(equipInput?equipInput.value.trim():'');
+  const dateEl=document.getElementById('date');
+  const date=dateEl?dateEl.value:new Date().toISOString().slice(0,10);
+  const tech=(document.getElementById('technician')||{}).value||'';
+  const job=(document.getElementById('job-number')||{}).value||'';
+  preparePrintView();
+  if (window.electronAPI) {
+    try {
+      const result=await window.electronAPI.savePDF({equipment:equipVal,date});
+      cleanupPrintView();
+      if (result.ok) {
+        const statusEl=document.querySelector('[data-status-box]:checked');
+        const status=statusEl?statusEl.closest('[data-status-item]').querySelector('label').textContent:'Completed';
+        try { await window.electronAPI.appendHistory({date,equipment:equipVal,job,technician:tech,status,notes:(document.getElementById('mechanic-comments')||{}).value||'',path:result.path}); } catch(_) {}
+        const mIn=(document.getElementById('mileage-in')||{}).value||'', mOut=(document.getElementById('mileage-out')||{}).value||'';
+        if (equipVal&&(mIn||mOut)) { try { await window.electronAPI.appendMileage({code:equipVal.split(' ')[0],entry:{date,in:mIn,out:mOut,tech}}); } catch(_) {} }
+        if (confirm('Saved:\n'+result.path+'\n\nStart a new record?')) clearForm(true);
+      } else if (result.msg!=='Cancelled.') { alert('Save failed: '+result.msg); }
+    } catch(e) { cleanupPrintView(); alert('Error: '+e.message); }
+    return;
+  }
+  window.print(); cleanupPrintView();
+}
+
+// ── PIN system ────────────────────────────────────────────────────────────
+let pinCallback=null;
+function requirePin(cb) {
+  if (!window.electronAPI) { cb(true); return; }
+  pinCallback=cb;
+  document.getElementById('pin-input').value='';
+  document.getElementById('pin-error').textContent='';
+  document.getElementById('pin-overlay').hidden=false;
+  setTimeout(()=>document.getElementById('pin-input').focus(),50);
+}
+async function submitPin() {
+  const pin=document.getElementById('pin-input').value;
+  try {
+    const ok=await window.electronAPI.verifyPin(pin);
+    if (ok) { document.getElementById('pin-overlay').hidden=true; if(pinCallback){pinCallback(true);pinCallback=null;} }
+    else { document.getElementById('pin-error').textContent='Incorrect PIN.'; document.getElementById('pin-input').value=''; document.getElementById('pin-input').focus(); }
+  } catch(_) { document.getElementById('pin-error').textContent='Error verifying PIN.'; }
+}
+function cancelPin() { document.getElementById('pin-overlay').hidden=true; if(pinCallback){pinCallback(false);pinCallback=null;} }
+document.getElementById('pin-input').addEventListener('keydown', e => { if(e.key==='Enter') submitPin(); });
+
+// ── Modal helpers ─────────────────────────────────────────────────────────
+function closeModal(id) { document.getElementById(id).hidden=true; }
+document.querySelectorAll('.modal-overlay').forEach(mo => mo.addEventListener('click', e => { if(e.target===mo) mo.hidden=true; }));
+
+// ── Equipment Manager ─────────────────────────────────────────────────────
+function openEquipmentManager() { requirePin(ok => { if(!ok) return; renderEquipTable(); document.getElementById('equip-modal').hidden=false; }); }
+
+function renderEquipTable() {
+  const q=((document.getElementById('equip-search')||{}).value||'').toLowerCase();
+  const tbody=document.getElementById('equip-tbody');
+  const rows=equipmentDB.filter(e => !q||(e.code+' '+e.desc+' '+e.make+' '+e.model).toLowerCase().includes(q));
+  if (!rows.length) { tbody.innerHTML='<tr><td colspan="7"><div class="empty-state">No equipment found.</div></td></tr>'; return; }
+  tbody.innerHTML=rows.map(e => {
+    const idx=equipmentDB.indexOf(e);
+    return '<tr><td><strong>'+escHtml(e.code)+'</strong></td><td>'+escHtml(e.desc)+'</td><td>'+escHtml(e.year||'')+'</td><td>'+escHtml(e.make||'')+'</td><td>'+escHtml(e.model||'')+'</td><td>'+escHtml(e.vin||'')+'</td><td style="white-space:nowrap"><button class="action-btn" onclick="editEquip('+idx+')">Edit</button> <button class="action-btn danger" onclick="deleteEquip('+idx+')">Del</button></td></tr>';
+  }).join('');
+}
+
+function clearEquipForm() { ['eq-code','eq-desc','eq-year','eq-make','eq-model','eq-vin'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; }); document.getElementById('equip-form-msg').textContent=''; equipEditIdx=-1; }
+
+function editEquip(idx) {
+  const e=equipmentDB[idx]; if (!e) return; equipEditIdx=idx;
+  document.getElementById('eq-code').value=e.code||''; document.getElementById('eq-desc').value=e.desc||'';
+  document.getElementById('eq-year').value=e.year||''; document.getElementById('eq-make').value=e.make||'';
+  document.getElementById('eq-model').value=e.model||''; document.getElementById('eq-vin').value=e.vin||'';
+  document.getElementById('eq-code').focus();
+}
+
+function deleteEquip(idx) {
+  const e=equipmentDB[idx]; if (!e||!confirm('Delete '+e.code+' — '+e.desc+'?')) return;
+  equipmentDB.splice(idx,1); persistEquipment(); renderEquipTable();
+}
+
+async function saveEquipEntry() {
+  const code=(document.getElementById('eq-code').value||'').trim();
+  const desc=(document.getElementById('eq-desc').value||'').trim();
+  const year=(document.getElementById('eq-year').value||'').trim();
+  const make=(document.getElementById('eq-make').value||'').trim();
+  const model=(document.getElementById('eq-model').value||'').trim();
+  const vin=(document.getElementById('eq-vin').value||'').trim();
+  if (!code) { document.getElementById('equip-form-msg').textContent='Unit # required.'; return; }
+  if (equipEditIdx>=0) { equipmentDB[equipEditIdx]={code,desc,year,make,model,vin}; }
+  else { const ex=equipmentDB.findIndex(e=>e.code===code); if(ex>=0) equipmentDB[ex]={code,desc,year,make,model,vin}; else equipmentDB.push({code,desc,year,make,model,vin}); }
+  equipmentDB.sort((a,b)=>a.code.localeCompare(b.code,undefined,{numeric:true}));
+  await persistEquipment();
+  document.getElementById('equip-form-msg').textContent='Saved.';
+  setTimeout(()=>{document.getElementById('equip-form-msg').textContent='';},2000);
+  clearEquipForm(); renderEquipTable();
+}
+
+async function persistEquipment() { if (window.electronAPI) { try { await window.electronAPI.saveEquipment(equipmentDB); } catch(_) {} } }
+
+// ── Service History ───────────────────────────────────────────────────────
+let historyData=[];
+async function openHistory() {
+  document.getElementById('history-modal').hidden=false;
+  if (window.electronAPI) { try { historyData=await window.electronAPI.getHistory()||[]; } catch(_) { historyData=[]; } }
+  renderHistory();
+}
+function renderHistory() {
+  const q = ((document.getElementById('history-search') || {}).value || '').toLowerCase();
+  const el = document.getElementById('history-content');
+  const rows = [...historyData].reverse().filter(h =>
+    !q || ((h.equipment||'') + ' ' + (h.technician||'') + ' ' + (h.job||'') + ' ' + (h.date||'')).toLowerCase().includes(q));
+  if (!rows.length) { el.innerHTML = '<div class="empty-state">No service records found.</div>'; return; }
+  el.innerHTML =
+    '<table class="data-table"><thead><tr><th>Date</th><th>Unit #</th><th>Job #</th><th>Technician</th><th>Status</th><th>Notes</th><th></th></tr></thead><tbody>' +
+    rows.map(h =>
+      '<tr><td>' + escHtml(h.date || '') + '</td>' +
+      '<td><strong>' + escHtml(h.equipment || '') + '</strong></td>' +
+      '<td>' + escHtml(h.job || '') + '</td>' +
+      '<td>' + escHtml(h.technician || '') + '</td>' +
+      '<td>' + badgeForStatus(h.status) + '</td>' +
+      '<td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + escHtml(h.notes || '') + '">' +
+        escHtml((h.notes || '').slice(0, 60)) + '</td>' +
+      '<td>' + (h.path
+        ? '<button class="action-btn" data-open-path="' + escHtml(h.path) + '">Open</button>'
+        : '') + '</td>' +
+      '</tr>'
+    ).join('') + '</tbody></table>';
+}
+function badgeForStatus(s) {
+  if (!s) return '<span class="badge badge-gray">—</span>';
+  if (/ready/i.test(s))   return '<span class="badge badge-green">'  + escHtml(s) + '</span>';
+  if (/lockout/i.test(s)) return '<span class="badge badge-red">'    + escHtml(s) + '</span>';
+  if (/parts/i.test(s))   return '<span class="badge badge-yellow">' + escHtml(s) + '</span>';
+  return '<span class="badge badge-gray">' + escHtml(s) + '</span>';
+}
+function openFile(p) { if (window.electronAPI && p) window.electronAPI.openFile(p); }
+// Single delegated listener — any [data-open-path] button opens the file.
+// Avoids fragile inline-onclick string escaping of Windows backslashes.
+document.addEventListener('click', e => {
+  const btn = e.target.closest('[data-open-path]');
+  if (btn) openFile(btn.getAttribute('data-open-path'));
+});
+
+// ── Mileage Tracking ──────────────────────────────────────────────────────
+let mileageData={};
+async function openMileage() {
+  document.getElementById('mileage-modal').hidden=false;
+  const md=document.getElementById('mil-date'); if(md&&!md.value) md.valueAsDate=new Date();
+  const tech=(document.getElementById('technician')||{}).value||'';
+  const mt=document.getElementById('mil-tech'); if(mt&&!mt.value&&tech) mt.value=tech;
+  if (window.electronAPI) { try { mileageData=await window.electronAPI.getMileage()||{}; } catch(_) { mileageData={}; } }
+  renderMileage();
+}
+function renderMileage() {
+  const q=((document.getElementById('mileage-search')||{}).value||'').toLowerCase();
+  const el=document.getElementById('mileage-content');
+  const codes=Object.keys(mileageData).filter(c=>!q||c.toLowerCase().includes(q)).sort();
+  if (!codes.length) { el.innerHTML='<div class="empty-state">No mileage records yet.</div>'; return; }
+  el.innerHTML=codes.map(code=>'<div style="margin-bottom:18px"><div style="font-family:\'Barlow Condensed\',sans-serif;font-weight:700;font-size:14px;letter-spacing:1px;color:var(--ink);margin-bottom:6px;padding-bottom:4px;border-bottom:1px solid var(--rule)">'+escHtml(code)+'</div><table class="data-table"><thead><tr><th>Date</th><th>Miles In</th><th>Miles Out</th><th>Tech</th></tr></thead><tbody>'+[...(mileageData[code]||[])].reverse().slice(0,20).map(e=>'<tr><td>'+escHtml(e.date||'')+'</td><td>'+escHtml(e.in||'')+'</td><td>'+escHtml(e.out||'')+'</td><td>'+escHtml(e.tech||'')+'</td></tr>').join('')+'</tbody></table></div>').join('');
+}
+async function saveMileageEntry() {
+  const code=(document.getElementById('mil-code').value||'').trim(), date=(document.getElementById('mil-date').value||'').trim();
+  const mIn=(document.getElementById('mil-in').value||'').trim(), mOut=(document.getElementById('mil-out').value||'').trim(), tech=(document.getElementById('mil-tech').value||'').trim();
+  if (!code||!date) { document.getElementById('mileage-msg').textContent='Unit # and date required.'; return; }
+  if (window.electronAPI) { try { await window.electronAPI.appendMileage({code,entry:{date,in:mIn,out:mOut,tech}}); } catch(_) {} }
+  if (!mileageData[code]) mileageData[code]=[];
+  mileageData[code].push({date,in:mIn,out:mOut,tech});
+  document.getElementById('mileage-msg').textContent='Logged!';
+  setTimeout(()=>{document.getElementById('mileage-msg').textContent='';},2000);
+  renderMileage();
+}
+
+// ── Past Records ──────────────────────────────────────────────────────────
+let recordsData=[];
+async function openRecords() { document.getElementById('records-modal').hidden=false; await loadRecords(); }
+async function loadRecords() {
+  document.getElementById('records-content').innerHTML='<div class="empty-state">Scanning...</div>';
+  if (!window.electronAPI) { document.getElementById('records-content').innerHTML='<div class="empty-state">Only available in the desktop app.</div>'; return; }
+  try { recordsData=await window.electronAPI.scanRecords()||[]; renderRecords(); }
+  catch(e) { document.getElementById('records-content').innerHTML='<div class="empty-state">Error: '+escHtml(e.message)+'</div>'; }
+}
+function renderRecords() {
+  const q=((document.getElementById('records-search')||{}).value||'').toLowerCase();
+  const el=document.getElementById('records-content');
+  const rows=recordsData.filter(r=>!q||r.file.toLowerCase().includes(q));
+  if (!rows.length) { el.innerHTML='<div class="empty-state">No PDF records found.</div>'; return; }
+  const byMonth={};
+  rows.forEach(r=>{ if(!byMonth[r.month]) byMonth[r.month]=[]; byMonth[r.month].push(r); });
+  el.innerHTML = Object.keys(byMonth).sort().reverse().map(month =>
+    '<div style="margin-bottom:14px">' +
+      '<div style="font-family:\'Barlow Condensed\',sans-serif;font-weight:700;font-size:13px;letter-spacing:1px;color:var(--ink);margin-bottom:6px;padding-bottom:4px;border-bottom:1px solid var(--rule)">' +
+        escHtml(month) +
+      '</div>' +
+      '<table class="data-table"><thead><tr><th>File</th><th></th></tr></thead><tbody>' +
+        byMonth[month].map(r =>
+          '<tr><td>' + escHtml(r.file) + '</td>' +
+          '<td><button class="action-btn" data-open-path="' + escHtml(r.path) + '">Open</button></td></tr>'
+        ).join('') +
+      '</tbody></table>' +
+    '</div>'
+  ).join('');
+}
+
+// ── GitHub link ───────────────────────────────────────────────────────────
+function openGitHub(e) { e.preventDefault(); if(window.electronAPI) window.electronAPI.openExternal('https://github.com/Marcus-Wh'); else window.open('https://github.com/Marcus-Wh','_blank'); }
+
+// ── Init ──────────────────────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', async () => {
+  loadTheme();
+  await loadEquipmentDB();
+  restoreDraft();
+  setDefaults();
+  syncStatus();
+  refreshSharepointStatus();
+});
+</script>
+</body>
+</html>
+/ /   u p d a t e  
+ / /   u p d a t e  
+ 
