@@ -16,10 +16,10 @@ at a folder.
 
 ## Why this exists
 
-The original workflow was a Microsoft Word template that techs would
-fill out, save with whatever filename they felt like, and dump into a
-shared drive. The result was inconsistent naming, no way to search
-past records, and PDFs that often never got saved at all.
+The original workflow was paper service records that multiple branches
+had to try to consolidate with images and printouts, then stored in a file
+cabinet. Service history was limited to an Excel spreadsheet with limited 
+access, and service records were lost or hard to decipher.
 
 This app replaces it with a single-screen, scrollable form that:
 
