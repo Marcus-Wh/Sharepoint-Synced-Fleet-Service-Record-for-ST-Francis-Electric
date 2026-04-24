@@ -287,6 +287,9 @@ ipcMain.handle('upload-scan', async (_evt, payload) => {
   try {
     fs.copyFileSync(srcPath, destPath);
     shell.showItemInFolder(destPath);
+    if (win && !win.isDestroyed()) {
+      setTimeout(() => { try { win.focus(); } catch (_) {} }, 150);
+    }
     return { ok: true, path: destPath };
   } catch (e) {
     logError('upload-scan copy', e);
@@ -335,6 +338,11 @@ ipcMain.handle('save-pdf', async (_evt, payload) => {
     });
     fs.writeFileSync(destPath, pdf);
     shell.showItemInFolder(destPath);
+    // Explorer steals focus; reclaim it so the confirm() dialog lands on
+    // the app window and form inputs remain responsive without an alt-tab.
+    if (win && !win.isDestroyed()) {
+      setTimeout(() => { try { win.focus(); } catch (_) {} }, 150);
+    }
     return { ok: true, path: destPath };
   } catch (e) {
     logError('save-pdf printToPDF', e);
