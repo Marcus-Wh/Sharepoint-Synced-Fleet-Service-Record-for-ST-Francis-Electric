@@ -166,6 +166,15 @@
   .modal-close { background:none; border:none; font-size:20px; cursor:pointer; color:var(--meta-color); padding:0 4px; line-height:1; }
   .modal-close:hover { color:var(--accent); }
   .modal-body { padding:16px 18px; overflow-y:auto; flex:1; }
+  /* The .tb-btn class was originally toolbar-only (light text on dark bar).
+     Inside modals it needs to read against --modal-bg. Override here so we
+     don't have to maintain a parallel button class. */
+  .modal-panel .tb-btn { color:var(--ink); border-color:var(--rule); background:rgba(0,0,0,.04); }
+  .modal-panel .tb-btn:hover { background:rgba(0,0,0,.10); color:var(--ink); }
+  .modal-panel .tb-btn-primary { color:#fff; border-color:var(--accent); background:var(--accent); }
+  .modal-panel .tb-btn-primary:hover { color:#fff; background:#a93226; }
+  [data-theme="dark"] .modal-panel .tb-btn { background:rgba(255,255,255,.06); border-color:var(--rule); }
+  [data-theme="dark"] .modal-panel .tb-btn:hover { background:rgba(255,255,255,.14); }
 
   /* ── PIN ── */
   .pin-overlay { position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:300; display:flex; align-items:center; justify-content:center; }
@@ -288,6 +297,47 @@
   <button class="tb-btn tb-btn-primary" onclick="finish()">&#10003; Save &amp; Print</button>
 </div>
 
+<!-- Update available modal (shown on launch when manifest reports a newer version) -->
+<div class="modal-overlay" id="update-modal" hidden>
+  <div class="modal-panel" style="width:480px">
+    <div class="modal-header">
+      <span class="modal-title">&#8593; Update Available</span>
+    </div>
+    <div class="modal-body">
+      <div style="font-size:14px;margin-bottom:10px">
+        A new version of SF Service Record is ready to install.
+      </div>
+      <div style="font-size:12px;color:var(--meta-color);margin-bottom:14px">
+        <div>Current version: <span id="update-current">—</span></div>
+        <div>New version: <strong id="update-latest">—</strong></div>
+      </div>
+      <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--meta-color);margin-bottom:6px">What's new</div>
+      <div id="update-notes" style="font-size:13px;background:var(--page-bg);border:1px solid var(--rule);border-radius:3px;padding:10px;white-space:pre-wrap;max-height:160px;overflow:auto">—</div>
+      <div style="display:flex;gap:8px;margin-top:16px;justify-content:flex-end">
+        <button class="tb-btn" id="update-later-btn" onclick="dismissUpdate()">Later</button>
+        <button class="tb-btn tb-btn-primary" onclick="installUpdate()">Install Now &amp; Restart</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Custom in-app confirm / alert dialog (replaces native confirm/alert,
+     which steal renderer focus on Windows and leave text fields unresponsive) -->
+<div class="modal-overlay" id="sf-dialog-modal" hidden>
+  <div class="modal-panel" style="width:auto;min-width:420px;max-width:560px">
+    <div class="modal-header">
+      <span class="modal-title" id="sf-dialog-title">Notice</span>
+    </div>
+    <div class="modal-body">
+      <div id="sf-dialog-message" style="font-size:13px;white-space:pre-wrap;line-height:1.5;margin-bottom:18px;word-break:break-word"></div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap">
+        <button class="tb-btn" id="sf-dialog-cancel" style="display:none">Cancel</button>
+        <button class="tb-btn tb-btn-primary" id="sf-dialog-ok">OK</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- PIN overlay -->
 <div class="pin-overlay" id="pin-overlay" hidden>
   <div class="pin-panel">
@@ -320,7 +370,7 @@
           <div class="form-field" style="max-width:80px"><label>Year</label><input type="text" id="eq-year" placeholder="2022"></div>
           <div class="form-field" style="max-width:100px"><label>Make</label><input type="text" id="eq-make" placeholder="Ford"></div>
           <div class="form-field"><label>Model</label><input type="text" id="eq-model" placeholder="F-550 XL"></div>
-          <div class="form-field"><label>VIN (Last 8)</label><input type="text" id="eq-vin" placeholder="XXXXXXXX" maxlength="17"></div>
+          <div class="form-field"><label>VIN</label><input type="text" id="eq-vin" placeholder="XXXXXXXX" maxlength="17"></div>
         </div>
         <div style="display:flex;gap:8px;margin-top:6px">
           <button class="tb-btn tb-btn-primary" onclick="saveEquipEntry()">Save Entry</button>
@@ -431,7 +481,7 @@
     <div class="info-cell"><label>Year</label><input type="text" id="equipment-year" placeholder="20XX"></div>
     <div class="info-cell"><label>Make</label><input type="text" id="equipment-make" placeholder="Ford"></div>
     <div class="info-cell"><label>Model</label><input type="text" id="equipment-model" placeholder="F-350"></div>
-    <div class="info-cell"><label>VIN (Last 8)</label><input type="text" id="equipment-vin" placeholder="XXXXXXXX" maxlength="17"></div>
+    <div class="info-cell"><label>VIN</label><input type="text" id="equipment-vin" placeholder="XXXXXXXX" maxlength="17"></div>
     <div class="info-cell"><label>Mileage In</label><input type="text" id="mileage-in" placeholder="000000"></div>
     <div class="info-cell"><label>Mileage Out</label><input type="text" id="mileage-out" placeholder="000000"></div>
   </div>
@@ -463,6 +513,7 @@
     <div class="check-item"><input type="checkbox"><span class="check-label">DPF / DEF</span><select><option>OK</option><option>Check</option><option>Low</option><option>Regen</option><option>N/A</option></select></div>
     <div class="check-item"><input type="checkbox"><span class="check-label">Tire Pressure Set</span><select><option>Check</option><option>Done</option><option>N/A</option></select></div>
     <div class="check-item"><input type="checkbox"><span class="check-label">Hydraulic System</span><select><option>OK</option><option>Check</option><option>Leak</option><option>Low Fluid</option><option>Repair</option><option>N/A</option></select></div>
+    <div class="check-item"><input type="checkbox"><span class="check-label">Defroster / Air Conditioning</span><select><option>OK</option><option>Check</option><option>Weak</option><option>Not Working</option><option>Recharge</option><option>Repaired</option><option>N/A</option></select></div>
     <div class="check-item"><span class="check-label">Other 1</span><input type="text" class="inline-note-input" placeholder="Special equipment item"><select><option>OK</option><option>Check</option><option>Repair</option><option>Replace</option><option>N/A</option></select></div>
     <div class="check-item"><span class="check-label">Other 2</span><input type="text" class="inline-note-input" placeholder="Special equipment item"><select><option>OK</option><option>Check</option><option>Repair</option><option>Replace</option><option>N/A</option></select></div>
   </div>
@@ -656,7 +707,7 @@ statusBoxes.forEach(b => b.addEventListener('change', () => { if (b.checked) sta
 // and rescales on window resize so the drawing area always matches CSS pixels.
 (function() {
   const canvas = document.getElementById('sig-canvas'); if (!canvas) return;
-  const ctx = canvas.getContext('2d');
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
   let drawing = false, lx = 0, ly = 0;
 
   function resize() {
@@ -729,6 +780,8 @@ function syncPrintComments() {
 }
 function preparePrintView() { syncPrintComments(); document.body.classList.add('is-printing'); }
 function cleanupPrintView() { document.body.classList.remove('is-printing'); }
+window.addEventListener('beforeprint', preparePrintView);
+window.addEventListener('afterprint',  cleanupPrintView);
 
 // ── Draft persistence (debounced) ─────────────────────────────────────────
 // Previously wrote to localStorage on every keystroke; on a 60-field form
@@ -771,8 +824,12 @@ document.addEventListener('change', e => { if (e.target.matches(FORM_SELECTOR)) 
 window.addEventListener('beforeunload', saveDraftNow);
 
 // ── Clear form ────────────────────────────────────────────────────────────
-function clearForm(skipConfirm) {
-  if (!skipConfirm && !confirm('Start a new record? All fields will be cleared.')) return;
+async function clearForm(skipConfirm) {
+  if (!skipConfirm && !(await sfConfirm(
+    'All fields will be cleared.',
+    'New Record',
+    { okLabel: 'Start New Service Record', cancelLabel: 'Keep Editing Current Service Record' }
+  ))) return;
   try { localStorage.removeItem('srDraft'); } catch(_) {}
   document.querySelectorAll('input:not([type=password])').forEach(el => el.type==='checkbox'?(el.checked=false):(el.value=''));
   document.querySelectorAll('select').forEach(el => el.selectedIndex=0);
@@ -815,9 +872,9 @@ async function refreshSharepointStatus() {
   try { const cfg=await window.electronAPI.getConfig(); if(cfg&&cfg.sharepointPath){el.textContent=cfg.sharepointPath;el.className='configured';}else{el.textContent='Not configured';el.className='';} } catch(_) {}
 }
 async function openSettings() {
-  if (!window.electronAPI) { alert('Settings are only available in the desktop app.'); return; }
+  if (!window.electronAPI) { await sfAlert('Settings are only available in the desktop app.'); return; }
   const p=await window.electronAPI.pickSharepointFolder();
-  if (p) alert('SharePoint folder set to:\n'+p+'\n\nPDFs will auto-save to YYYY-MM subfolders here.');
+  if (p) await sfAlert('SharePoint folder set to:\n'+p+'\n\nPDFs will auto-save to YYYY-MM subfolders here.', 'SharePoint Folder');
   refreshSharepointStatus();
 }
 
@@ -826,19 +883,19 @@ async function openSettings() {
 // the app drops it into the SharePoint monthly folder with an auto-name
 // like  2026-04-23_20089_scan.jpg. No naming required.
 async function uploadScan() {
-  if (!window.electronAPI) { alert('Upload is only available in the desktop app.'); return; }
+  if (!window.electronAPI) { await sfAlert('Upload is only available in the desktop app.'); return; }
   const equipment = equipInput ? equipInput.value.trim() : '';
   const dateEl    = document.getElementById('date');
   const date      = dateEl && dateEl.value ? dateEl.value : new Date().toISOString().slice(0, 10);
   try {
     const result = await window.electronAPI.uploadScan({ equipment, date });
     if (result.ok) {
-      alert('Uploaded:\n' + result.path);
+      await sfAlert('Uploaded:\n' + result.path, 'Upload Complete');
     } else if (result.msg && result.msg !== 'Cancelled.') {
-      alert('Upload failed: ' + result.msg);
+      await sfAlert('Upload failed: ' + result.msg, 'Error');
     }
   } catch (e) {
-    alert('Error: ' + e.message);
+    await sfAlert('Error: ' + e.message, 'Error');
   }
 }
 
@@ -860,9 +917,13 @@ async function finish() {
         try { await window.electronAPI.appendHistory({date,equipment:equipVal,job,technician:tech,status,notes:(document.getElementById('mechanic-comments')||{}).value||'',path:result.path}); } catch(_) {}
         const mIn=(document.getElementById('mileage-in')||{}).value||'', mOut=(document.getElementById('mileage-out')||{}).value||'';
         if (equipVal&&(mIn||mOut)) { try { await window.electronAPI.appendMileage({code:equipVal.split(' ')[0],entry:{date,in:mIn,out:mOut,tech}}); } catch(_) {} }
-        if (confirm('Saved:\n'+result.path+'\n\nStart a new record?')) clearForm(true);
-      } else if (result.msg!=='Cancelled.') { alert('Save failed: '+result.msg); }
-    } catch(e) { cleanupPrintView(); alert('Error: '+e.message); }
+        if (await sfConfirm(
+          'Saved:\n'+result.path,
+          'Saved',
+          { okLabel: 'Start New Service Record', cancelLabel: 'Keep Editing Current Service Record' }
+        )) await clearForm(true);
+      } else if (result.msg!=='Cancelled.') { await sfAlert('Save failed: '+result.msg, 'Error'); }
+    } catch(e) { cleanupPrintView(); await sfAlert('Error: '+e.message, 'Error'); }
     return;
   }
   window.print(); cleanupPrintView();
@@ -917,8 +978,9 @@ function editEquip(idx) {
   document.getElementById('eq-code').focus();
 }
 
-function deleteEquip(idx) {
-  const e=equipmentDB[idx]; if (!e||!confirm('Delete '+e.code+' — '+e.desc+'?')) return;
+async function deleteEquip(idx) {
+  const e=equipmentDB[idx]; if (!e) return;
+  if (!(await sfConfirm('Delete '+e.code+' — '+e.desc+'?', 'Delete Equipment'))) return;
   equipmentDB.splice(idx,1); persistEquipment(); renderEquipTable();
 }
 
@@ -1048,6 +1110,71 @@ function renderRecords() {
 // ── GitHub link ───────────────────────────────────────────────────────────
 function openGitHub(e) { e.preventDefault(); if(window.electronAPI) window.electronAPI.openExternal('https://github.com/Marcus-Wh'); else window.open('https://github.com/Marcus-Wh','_blank'); }
 
+// ── Custom in-app dialogs ─────────────────────────────────────────────────
+// Replaces native confirm() / alert(), which on Windows can leave the
+// renderer without keyboard focus after they close — text fields go dead
+// until the user alt-tabs or opens DevTools. Our custom modal stays inside
+// the renderer DOM, so no native window is ever created and no focus
+// transfer happens. Callers must use `await sfConfirm(...)` / `sfAlert(...)`.
+let _sfDialogResolve = null;
+function _sfShowDialog(opts) {
+  return new Promise(resolve => {
+    if (_sfDialogResolve) _sfDialogResolve(false);
+    _sfDialogResolve = resolve;
+    document.getElementById('sf-dialog-title').textContent = opts.title || (opts.confirm ? 'Confirm' : 'Notice');
+    document.getElementById('sf-dialog-message').textContent = opts.message || '';
+    const cancelBtn = document.getElementById('sf-dialog-cancel');
+    cancelBtn.style.display = opts.confirm ? '' : 'none';
+    cancelBtn.textContent = opts.cancelLabel || 'Cancel';
+    const okBtn = document.getElementById('sf-dialog-ok');
+    okBtn.textContent = opts.okLabel || 'OK';
+    document.getElementById('sf-dialog-modal').hidden = false;
+    setTimeout(() => okBtn.focus(), 50);
+  });
+}
+function _sfDialogClose(value) {
+  document.getElementById('sf-dialog-modal').hidden = true;
+  if (_sfDialogResolve) { const r = _sfDialogResolve; _sfDialogResolve = null; r(value); }
+}
+// sfAlert(message, title?) — single OK button
+// sfConfirm(message, title?, opts?) — opts: { okLabel, cancelLabel }
+function sfAlert(message, title)         { return _sfShowDialog({ message, title: title || 'Notice', confirm: false }); }
+function sfConfirm(message, title, opts) { return _sfShowDialog(Object.assign({ message, title: title || 'Confirm', confirm: true }, opts || {})); }
+document.getElementById('sf-dialog-ok').addEventListener('click', () => _sfDialogClose(true));
+document.getElementById('sf-dialog-cancel').addEventListener('click', () => _sfDialogClose(false));
+document.getElementById('sf-dialog-modal').addEventListener('click', e => {
+  if (e.target.id === 'sf-dialog-modal') _sfDialogClose(false);
+});
+document.addEventListener('keydown', e => {
+  if (document.getElementById('sf-dialog-modal').hidden) return;
+  if (e.key === 'Enter')  { e.preventDefault(); _sfDialogClose(true); }
+  else if (e.key === 'Escape') { e.preventDefault(); _sfDialogClose(false); }
+});
+
+// ── Auto-update ───────────────────────────────────────────────────────────
+let pendingUpdateDir = null;
+async function checkForUpdate() {
+  if (!window.electronAPI || !window.electronAPI.checkUpdate) return;
+  try {
+    const r = await window.electronAPI.checkUpdate();
+    if (!r || !r.available) return;
+    pendingUpdateDir = r.releaseDir;
+    document.getElementById('update-current').textContent = r.current || '—';
+    document.getElementById('update-latest').textContent = r.latest || '—';
+    document.getElementById('update-notes').textContent = r.notes || '(no release notes)';
+    if (r.mandatory) document.getElementById('update-later-btn').style.display = 'none';
+    document.getElementById('update-modal').hidden = false;
+  } catch (_) { /* silent — update check must never block app launch */ }
+}
+function dismissUpdate() { document.getElementById('update-modal').hidden = true; }
+async function installUpdate() {
+  if (!pendingUpdateDir) return;
+  const btn = document.querySelector('#update-modal .tb-btn-primary');
+  if (btn) { btn.disabled = true; btn.textContent = 'Installing…'; }
+  try { await window.electronAPI.applyUpdate(pendingUpdateDir); }
+  catch (_) { if (btn) { btn.disabled = false; btn.textContent = 'Install Now & Restart'; } }
+}
+
 // ── Init ──────────────────────────────────────────────────────────────────
 window.addEventListener('DOMContentLoaded', async () => {
   loadTheme();
@@ -1056,10 +1183,8 @@ window.addEventListener('DOMContentLoaded', async () => {
   setDefaults();
   syncStatus();
   refreshSharepointStatus();
+  checkForUpdate();
 });
 </script>
 </body>
 </html>
-/ /   u p d a t e  
- / /   u p d a t e  
- 

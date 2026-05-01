@@ -31,4 +31,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
   scanRecords:          ()      => ipcRenderer.invoke('scan-records'),
   openFile:             (p)     => ipcRenderer.invoke('open-file', p),
   openExternal:         (url)   => ipcRenderer.invoke('open-external', url),
+
+  // Auto-update
+  checkUpdate:          ()      => ipcRenderer.invoke('check-update'),
+  applyUpdate:          (dir)   => ipcRenderer.invoke('apply-update', dir),
+
+  // Focus restore — call after a native confirm() dialog returns control
+  restoreFocus:         ()      => ipcRenderer.invoke('restore-focus'),
 });

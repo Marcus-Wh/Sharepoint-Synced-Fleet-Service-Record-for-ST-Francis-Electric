@@ -1,6 +1,6 @@
 {
   "name": "sf-service-record",
-  "version": "1.0.0",
+  "version": "1.1.7",
   "description": "St. Francis Electric — Equipment Service Record",
   "main": "main.js",
   "scripts": {
@@ -15,12 +15,16 @@
     "appId": "com.stfranciselectric.servicerecord",
     "productName": "SF Service Record",
     "directories": { "output": "dist" },
+    "asar": false,
     "win": {
-      "target": ["nsis", "portable"]
+      "target": ["nsis", "portable"],
+      "icon": "assets/icon.ico"
     },
     "nsis": {
       "oneClick": false,
-      "allowToChangeInstallationDirectory": true
+      "allowToChangeInstallationDirectory": true,
+      "installerIcon": "assets/icon.ico",
+      "uninstallerIcon": "assets/icon.ico"
     }
   }
 }
