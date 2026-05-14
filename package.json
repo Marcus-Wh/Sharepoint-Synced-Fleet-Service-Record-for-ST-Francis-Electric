@@ -1,6 +1,6 @@
 {
   "name": "sf-service-record",
-  "version": "1.1.7",
+  "version": "1.1.8",
   "description": "St. Francis Electric — Equipment Service Record",
   "main": "main.js",
   "scripts": {

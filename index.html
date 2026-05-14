@@ -873,8 +873,9 @@ async function refreshSharepointStatus() {
 }
 async function openSettings() {
   if (!window.electronAPI) { await sfAlert('Settings are only available in the desktop app.'); return; }
-  const p=await window.electronAPI.pickSharepointFolder();
-  if (p) await sfAlert('SharePoint folder set to:\n'+p+'\n\nPDFs will auto-save to YYYY-MM subfolders here.', 'SharePoint Folder');
+  const r=await window.electronAPI.pickSharepointFolder();
+  if (r && r.ok) await sfAlert('SharePoint folder set to:\n'+r.path+'\n\nPDFs will auto-save to YYYY-MM subfolders here.', 'SharePoint Folder');
+  else if (r && r.error) await sfAlert('Could not set SharePoint folder: '+r.error, 'Error');
   refreshSharepointStatus();
 }
 
@@ -891,8 +892,8 @@ async function uploadScan() {
     const result = await window.electronAPI.uploadScan({ equipment, date });
     if (result.ok) {
       await sfAlert('Uploaded:\n' + result.path, 'Upload Complete');
-    } else if (result.msg && result.msg !== 'Cancelled.') {
-      await sfAlert('Upload failed: ' + result.msg, 'Error');
+    } else if (!result.cancelled) {
+      await sfAlert('Upload failed: ' + (result.error || 'unknown error'), 'Error');
     }
   } catch (e) {
     await sfAlert('Error: ' + e.message, 'Error');
@@ -922,7 +923,7 @@ async function finish() {
           'Saved',
           { okLabel: 'Start New Service Record', cancelLabel: 'Keep Editing Current Service Record' }
         )) await clearForm(true);
-      } else if (result.msg!=='Cancelled.') { await sfAlert('Save failed: '+result.msg, 'Error'); }
+      } else if (!result.cancelled) { await sfAlert('Save failed: '+(result.error||'unknown error'), 'Error'); }
     } catch(e) { cleanupPrintView(); await sfAlert('Error: '+e.message, 'Error'); }
     return;
   }

@@ -15,9 +15,45 @@ const DEFAULT_PIN = '0000';
 const ICON_PATH   = path.join(__dirname, 'assets', 'icon.png');
 
 // ── Logging ──────────────────────────────────────────────────────────────────
-function logError(where, err) {
-  try { console.error('[' + where + ']', err && err.message ? err.message : err); } catch (_) {}
+// Rolling file log in %APPDATA%/sf-service-record/logs/. console.error in a
+// packaged Electron app has nowhere visible to go on Windows; this gives techs
+// a file they can attach to an email when something breaks.
+const LOG_DIR       = path.join(app.getPath('userData'), 'logs');
+const LOG_FILE      = path.join(LOG_DIR, 'main.log');
+const LOG_MAX_BYTES = 1024 * 1024;
+const LOG_KEEP      = 3;
+
+try { fs.mkdirSync(LOG_DIR, { recursive: true }); } catch (_) {}
+
+function rotateLogIfNeeded() {
+  try {
+    if (!fs.existsSync(LOG_FILE)) return;
+    if (fs.statSync(LOG_FILE).size < LOG_MAX_BYTES) return;
+    for (let i = LOG_KEEP - 1; i >= 1; i--) {
+      const src = path.join(LOG_DIR, 'main.' + i + '.log');
+      const dst = path.join(LOG_DIR, 'main.' + (i + 1) + '.log');
+      if (fs.existsSync(src)) fs.renameSync(src, dst);
+    }
+    fs.renameSync(LOG_FILE, path.join(LOG_DIR, 'main.1.log'));
+  } catch (_) { /* logging must never throw */ }
 }
+
+function logLine(level, where, msg) {
+  const line = new Date().toISOString() + ' [' + level + '] [' + where + '] ' + msg + '\n';
+  try { rotateLogIfNeeded(); fs.appendFileSync(LOG_FILE, line); } catch (_) {}
+  if (level === 'ERROR') { try { console.error(line.trim()); } catch (_) {} }
+}
+
+function logError(where, err) {
+  const detail = err && err.message ? err.message + (err.stack ? '\n' + err.stack : '') : String(err);
+  logLine('ERROR', where, detail);
+}
+function logInfo(where, msg) { logLine('INFO', where, String(msg)); }
+
+// ── Result helpers — every operation handler returns one of these shapes ────
+const ok  = (extra) => Object.assign({ ok: true }, extra || {});
+const err = (e)     => ({ ok: false, error: e && e.message ? e.message : String(e || 'unknown error') });
+const cancelled = () => ({ ok: false, cancelled: true });
 
 // ── Atomic JSON I/O ──────────────────────────────────────────────────────────
 // Writes to <file>.tmp then renames over the target. Prevents corrupted
@@ -158,7 +194,7 @@ function createWindow() {
   });
 }
 
-app.whenReady().then(createWindow);
+app.whenReady().then(() => { logInfo('startup', 'v' + currentVersion()); createWindow(); });
 app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
 
 // ── IPC: config ──────────────────────────────────────────────────────────────
@@ -167,30 +203,30 @@ ipcMain.handle('get-config', () => loadConfig());
 // ── IPC: equipment DB ────────────────────────────────────────────────────────
 ipcMain.handle('get-equipment',  ()           => loadEquipment());
 ipcMain.handle('save-equipment', (_evt, list) => {
-  if (!Array.isArray(list)) return false;
-  return saveEquipment(list);
+  if (!Array.isArray(list)) return err('save-equipment: payload must be an array');
+  return saveEquipment(list) ? ok() : err('failed to write equipment file');
 });
 
 // ── IPC: service history ─────────────────────────────────────────────────────
 ipcMain.handle('get-history', () => readJSONSafe(path.join(sharepointBase(), 'sf-history.json')) || []);
 ipcMain.handle('append-history', (_evt, entry) => {
-  if (!entry || typeof entry !== 'object') return false;
+  if (!entry || typeof entry !== 'object') return err('append-history: invalid entry');
   const p = path.join(sharepointBase(), 'sf-history.json');
   const arr = readJSONSafe(p) || [];
   arr.push(entry);
-  return writeJSONSafe(p, arr);
+  return writeJSONSafe(p, arr) ? ok() : err('failed to write history file');
 });
 
 // ── IPC: mileage tracking ────────────────────────────────────────────────────
 ipcMain.handle('get-mileage', () => readJSONSafe(path.join(sharepointBase(), 'sf-mileage.json')) || {});
 ipcMain.handle('append-mileage', (_evt, payload) => {
-  if (!payload || !payload.code || !payload.entry) return false;
+  if (!payload || !payload.code || !payload.entry) return err('append-mileage: invalid payload');
   const p = path.join(sharepointBase(), 'sf-mileage.json');
   const db = readJSONSafe(p) || {};
   const code = String(payload.code);
   if (!db[code]) db[code] = [];
   db[code].push(payload.entry);
-  return writeJSONSafe(p, db);
+  return writeJSONSafe(p, db) ? ok() : err('failed to write mileage file');
 });
 
 // ── IPC: scan saved records ──────────────────────────────────────────────────
@@ -219,31 +255,38 @@ ipcMain.handle('scan-records', () => {
 });
 
 // ── IPC: focus restore (called from renderer after native confirm() dialogs) ─
-ipcMain.handle('restore-focus', () => { restoreFocus(); return true; });
+ipcMain.handle('restore-focus', () => { restoreFocus(); return ok(); });
+
+// ── IPC: open log folder (for support — techs send us their main.log) ───────
+ipcMain.handle('open-log-folder', () => {
+  try { shell.openPath(LOG_DIR); return ok({ path: LOG_DIR }); }
+  catch (e) { logError('open-log-folder', e); return err(e); }
+});
 
 // ── IPC: open file / external link ───────────────────────────────────────────
 ipcMain.handle('open-file', async (_evt, p) => {
-  if (typeof p !== 'string' || !p) return false;
-  try { await shell.openPath(p); return true; }
-  catch (e) { logError('open-file', e); return false; }
+  if (typeof p !== 'string' || !p) return err('open-file: invalid path');
+  try { await shell.openPath(p); return ok(); }
+  catch (e) { logError('open-file', e); return err(e); }
 });
 ipcMain.handle('open-external', (_evt, url) => {
   // Only allow http(s) — no file:// or javascript: schemes from the renderer
-  if (typeof url !== 'string' || !/^https?:\/\//i.test(url)) return false;
-  try { shell.openExternal(url); return true; }
-  catch (e) { logError('open-external', e); return false; }
+  if (typeof url !== 'string' || !/^https?:\/\//i.test(url)) return err('open-external: only http(s) URLs allowed');
+  try { shell.openExternal(url); return ok(); }
+  catch (e) { logError('open-external', e); return err(e); }
 });
 
 // ── IPC: admin PIN ───────────────────────────────────────────────────────────
+// verify-pin is a yes/no question, not an operation — keep the boolean shape.
 ipcMain.handle('verify-pin', (_evt, pin) => {
   const cfg = loadConfig();
   return String(pin) === String(cfg.adminPin || DEFAULT_PIN);
 });
 ipcMain.handle('set-pin', (_evt, pin) => {
-  if (typeof pin !== 'string' || !pin.trim()) return false;
+  if (typeof pin !== 'string' || !pin.trim()) return err('set-pin: PIN cannot be empty');
   const cfg = loadConfig();
   cfg.adminPin = pin.trim();
-  return saveConfig(cfg);
+  return saveConfig(cfg) ? ok() : err('failed to save config');
 });
 
 // ── Auto-update ──────────────────────────────────────────────────────────────
@@ -267,34 +310,38 @@ function compareVersions(a, b) {
   }
   return 0;
 }
+// check-update returns ok() with an `available` field. Reasons like
+// 'no-sharepoint' / 'no-manifest' are not errors — they're normal states.
 ipcMain.handle('check-update', () => {
   try {
     const cfg = loadConfig();
     const root = (cfg.sharepointPath || '').trim();
     const current = currentVersion();
-    if (!root) return { available: false, current, reason: 'no-sharepoint' };
+    if (!root) return ok({ available: false, current, reason: 'no-sharepoint' });
     const manifest = readJSONSafe(path.join(root, 'app-version.json'));
     if (!manifest || !manifest.version || !manifest.folder) {
-      return { available: false, current, reason: 'no-manifest' };
+      return ok({ available: false, current, reason: 'no-manifest' });
     }
     const releaseDir = path.join(root, manifest.folder);
     if (!fs.existsSync(releaseDir)) {
-      return { available: false, current, reason: 'release-missing' };
+      return ok({ available: false, current, reason: 'release-missing' });
     }
     const newer = compareVersions(manifest.version, current) > 0;
-    return {
+    return ok({
       available: newer,
       current,
       latest: manifest.version,
       notes: manifest.notes || '',
       mandatory: !!manifest.mandatory,
       releaseDir
-    };
-  } catch (e) { logError('check-update', e); return { available: false, current: currentVersion(), reason: 'error' }; }
+    });
+  } catch (e) { logError('check-update', e); return err(e); }
 });
 ipcMain.handle('apply-update', (_evt, releaseDir) => {
   try {
-    if (typeof releaseDir !== 'string' || !releaseDir || !fs.existsSync(releaseDir)) return false;
+    if (typeof releaseDir !== 'string' || !releaseDir || !fs.existsSync(releaseDir)) {
+      return err('apply-update: release directory missing or invalid');
+    }
     const installDir = app.getAppPath();
     const srcUpdater = path.join(__dirname, 'updater.bat');
     const tmpUpdater = path.join(os.tmpdir(), 'sf-service-record-updater.bat');
@@ -305,9 +352,10 @@ ipcMain.handle('apply-update', (_evt, releaseDir) => {
       windowsHide: true
     });
     child.unref();
+    logInfo('apply-update', 'spawned updater for ' + releaseDir);
     setTimeout(() => app.quit(), 250);
-    return true;
-  } catch (e) { logError('apply-update', e); return false; }
+    return ok();
+  } catch (e) { logError('apply-update', e); return err(e); }
 });
 
 // ── IPC: pick SharePoint folder ──────────────────────────────────────────────
@@ -318,12 +366,13 @@ ipcMain.handle('pick-sharepoint-folder', async () => {
       properties: ['openDirectory', 'createDirectory']
     });
     restoreFocus();
-    if (result.canceled || !result.filePaths.length) return null;
+    if (result.canceled || !result.filePaths.length) return cancelled();
     const cfg = loadConfig();
     cfg.sharepointPath = result.filePaths[0];
-    saveConfig(cfg);
-    return result.filePaths[0];
-  } catch (e) { logError('pick-sharepoint-folder', e); return null; }
+    if (!saveConfig(cfg)) return err('failed to save config');
+    logInfo('pick-sharepoint-folder', result.filePaths[0]);
+    return ok({ path: result.filePaths[0] });
+  } catch (e) { logError('pick-sharepoint-folder', e); return err(e); }
 });
 
 // ── IPC: upload scan ─────────────────────────────────────────────────────────
@@ -344,7 +393,7 @@ ipcMain.handle('upload-scan', async (_evt, payload) => {
     ]
   });
   restoreFocus();
-  if (pick.canceled || !pick.filePaths.length) return { ok: false, msg: 'Cancelled.' };
+  if (pick.canceled || !pick.filePaths.length) return cancelled();
 
   const srcPath  = pick.filePaths[0];
   const ext      = path.extname(srcPath).toLowerCase() || '.jpg';
@@ -361,7 +410,7 @@ ipcMain.handle('upload-scan', async (_evt, payload) => {
       fs.mkdirSync(monthDir, { recursive: true });
     } catch (e) {
       logError('upload-scan mkdir', e);
-      return { ok: false, msg: 'Cannot create folder:\n' + monthDir + '\n\n' + e.message };
+      return err('Cannot create folder:\n' + monthDir + '\n\n' + e.message);
     }
     // Auto-increment if a file with this name already exists this day
     destPath = path.join(monthDir, baseName + ext);
@@ -381,7 +430,7 @@ ipcMain.handle('upload-scan', async (_evt, payload) => {
       ]
     });
     restoreFocus();
-    if (savePick.canceled) return { ok: false, msg: 'Cancelled.' };
+    if (savePick.canceled) return cancelled();
     destPath = savePick.filePath;
   }
 
@@ -390,10 +439,11 @@ ipcMain.handle('upload-scan', async (_evt, payload) => {
     // Intentionally do NOT call shell.showItemInFolder — Explorer steals
     // focus from the renderer on Windows, leaving text fields unresponsive.
     // Techs can browse uploaded scans via the Records button in the toolbar.
-    return { ok: true, path: destPath };
+    logInfo('upload-scan', destPath);
+    return ok({ path: destPath });
   } catch (e) {
     logError('upload-scan copy', e);
-    return { ok: false, msg: e.message };
+    return err(e);
   }
 });
 
@@ -413,7 +463,7 @@ ipcMain.handle('save-pdf', async (_evt, payload) => {
       fs.mkdirSync(monthDir, { recursive: true });
     } catch (e) {
       logError('save-pdf mkdir', e);
-      return { ok: false, msg: 'Cannot create folder:\n' + monthDir + '\n\n' + e.message };
+      return err('Cannot create folder:\n' + monthDir + '\n\n' + e.message);
     }
     destPath = path.join(monthDir, filename);
   } else {
@@ -423,7 +473,7 @@ ipcMain.handle('save-pdf', async (_evt, payload) => {
       filters: [{ name: 'PDF Files', extensions: ['pdf'] }]
     });
     restoreFocus();
-    if (pick.canceled) return { ok: false, msg: 'Cancelled.' };
+    if (pick.canceled) return cancelled();
     destPath = pick.filePath.toLowerCase().endsWith('.pdf')
       ? pick.filePath
       : pick.filePath + '.pdf';
@@ -441,9 +491,10 @@ ipcMain.handle('save-pdf', async (_evt, payload) => {
     // Intentionally do NOT call shell.showItemInFolder — Explorer steals
     // focus from the renderer on Windows, leaving text fields unresponsive.
     // Techs can browse saved PDFs via the Records button in the toolbar.
-    return { ok: true, path: destPath };
+    logInfo('save-pdf', destPath);
+    return ok({ path: destPath });
   } catch (e) {
     logError('save-pdf printToPDF', e);
-    return { ok: false, msg: e.message };
+    return err(e);
   }
 });

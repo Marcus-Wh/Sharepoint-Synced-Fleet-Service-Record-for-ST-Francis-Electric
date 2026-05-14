@@ -38,4 +38,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // Focus restore — call after a native confirm() dialog returns control
   restoreFocus:         ()      => ipcRenderer.invoke('restore-focus'),
+
+  // Open the log folder in Explorer (for support — tech sends us main.log)
+  openLogFolder:        ()      => ipcRenderer.invoke('open-log-folder'),
 });
