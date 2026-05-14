@@ -1,5 +1,6 @@
 'use strict';
 const { app, BrowserWindow, ipcMain, dialog, shell } = require('electron');
+const { spawn } = require('child_process');
 const path = require('path');
 const fs   = require('fs');
 const os   = require('os');
@@ -108,6 +109,28 @@ function sanitizeDate(d) {
     .replace(/[^0-9\-]/g, '').slice(0, 10);
 }
 
+// ── Focus restore ────────────────────────────────────────────────────────────
+// Windows steals focus from the Electron renderer in three cases:
+//   1. shell.showItemInFolder() pops Explorer (after Save & Print / Upload Scan)
+//   2. The native confirm() dialog from the renderer (+ New Record)
+//   3. Any time another window briefly activates over us
+// A single win.focus() call doesn't reliably restore typing because:
+//   - It only focuses the BrowserWindow shell, not the inner webContents
+//   - Explorer can grab focus AFTER our restore call returns
+// Solution: focus both the window and webContents, and retry at staggered
+// intervals so at least one call lands after the focus thief is done.
+function restoreFocus() {
+  const stamps = [120, 320, 700];
+  stamps.forEach(ms => {
+    setTimeout(() => {
+      if (!win || win.isDestroyed()) return;
+      if (win.isMinimized()) win.restore();
+      win.focus();
+      win.webContents.focus();
+    }, ms);
+  });
+}
+
 // ── Window ───────────────────────────────────────────────────────────────────
 function createWindow() {
   win = new BrowserWindow({
@@ -125,6 +148,14 @@ function createWindow() {
   });
   win.loadFile(path.join(__dirname, 'index.html'));
   win.setMenu(null);
+  // Allow F12 to toggle DevTools and Ctrl+R to reload — needed for debugging
+  // since the menu is hidden. before-input-event fires before the renderer
+  // sees the keystroke, so we don't interfere with normal typing.
+  win.webContents.on('before-input-event', (event, input) => {
+    if (input.type !== 'keyDown') return;
+    if (input.key === 'F12') { win.webContents.toggleDevTools(); event.preventDefault(); }
+    else if ((input.control || input.meta) && input.key.toLowerCase() === 'r') { win.webContents.reload(); event.preventDefault(); }
+  });
 }
 
 app.whenReady().then(createWindow);
@@ -187,6 +218,9 @@ ipcMain.handle('scan-records', () => {
   return results.sort((a, b) => (b.month + b.file).localeCompare(a.month + a.file));
 });
 
+// ── IPC: focus restore (called from renderer after native confirm() dialogs) ─
+ipcMain.handle('restore-focus', () => { restoreFocus(); return true; });
+
 // ── IPC: open file / external link ───────────────────────────────────────────
 ipcMain.handle('open-file', async (_evt, p) => {
   if (typeof p !== 'string' || !p) return false;
@@ -212,6 +246,70 @@ ipcMain.handle('set-pin', (_evt, pin) => {
   return saveConfig(cfg);
 });
 
+// ── Auto-update ──────────────────────────────────────────────────────────────
+// Update channel is the same OneDrive folder used for equipment + PDFs.
+// Boss publishes a new build by:
+//   1. Dropping app files into <SharePoint>/app-releases/<version>/
+//   2. Editing <SharePoint>/app-version.json to point at it
+// On launch, app reads its own package.json version, compares against the
+// manifest, and (if newer) prompts via a modal. Install Now spawns the
+// updater.bat from %TEMP% so the install folder is unlocked, then quits.
+function currentVersion() {
+  try { return require('./package.json').version || '0.0.0'; }
+  catch (_) { return '0.0.0'; }
+}
+function compareVersions(a, b) {
+  const pa = String(a).split('.').map(n => parseInt(n, 10) || 0);
+  const pb = String(b).split('.').map(n => parseInt(n, 10) || 0);
+  for (let i = 0; i < 3; i++) {
+    const d = (pa[i] || 0) - (pb[i] || 0);
+    if (d !== 0) return d < 0 ? -1 : 1;
+  }
+  return 0;
+}
+ipcMain.handle('check-update', () => {
+  try {
+    const cfg = loadConfig();
+    const root = (cfg.sharepointPath || '').trim();
+    const current = currentVersion();
+    if (!root) return { available: false, current, reason: 'no-sharepoint' };
+    const manifest = readJSONSafe(path.join(root, 'app-version.json'));
+    if (!manifest || !manifest.version || !manifest.folder) {
+      return { available: false, current, reason: 'no-manifest' };
+    }
+    const releaseDir = path.join(root, manifest.folder);
+    if (!fs.existsSync(releaseDir)) {
+      return { available: false, current, reason: 'release-missing' };
+    }
+    const newer = compareVersions(manifest.version, current) > 0;
+    return {
+      available: newer,
+      current,
+      latest: manifest.version,
+      notes: manifest.notes || '',
+      mandatory: !!manifest.mandatory,
+      releaseDir
+    };
+  } catch (e) { logError('check-update', e); return { available: false, current: currentVersion(), reason: 'error' }; }
+});
+ipcMain.handle('apply-update', (_evt, releaseDir) => {
+  try {
+    if (typeof releaseDir !== 'string' || !releaseDir || !fs.existsSync(releaseDir)) return false;
+    const installDir = app.getAppPath();
+    const srcUpdater = path.join(__dirname, 'updater.bat');
+    const tmpUpdater = path.join(os.tmpdir(), 'sf-service-record-updater.bat');
+    fs.copyFileSync(srcUpdater, tmpUpdater);
+    const child = spawn('cmd.exe', ['/c', 'start', '""', '/min', tmpUpdater, releaseDir, installDir], {
+      detached: true,
+      stdio: 'ignore',
+      windowsHide: true
+    });
+    child.unref();
+    setTimeout(() => app.quit(), 250);
+    return true;
+  } catch (e) { logError('apply-update', e); return false; }
+});
+
 // ── IPC: pick SharePoint folder ──────────────────────────────────────────────
 ipcMain.handle('pick-sharepoint-folder', async () => {
   try {
@@ -219,6 +317,7 @@ ipcMain.handle('pick-sharepoint-folder', async () => {
       title: 'Select your SharePoint / OneDrive Sync Folder for Service Records',
       properties: ['openDirectory', 'createDirectory']
     });
+    restoreFocus();
     if (result.canceled || !result.filePaths.length) return null;
     const cfg = loadConfig();
     cfg.sharepointPath = result.filePaths[0];
@@ -244,6 +343,7 @@ ipcMain.handle('upload-scan', async (_evt, payload) => {
       { name: 'All Files', extensions: ['*'] }
     ]
   });
+  restoreFocus();
   if (pick.canceled || !pick.filePaths.length) return { ok: false, msg: 'Cancelled.' };
 
   const srcPath  = pick.filePaths[0];
@@ -280,16 +380,16 @@ ipcMain.handle('upload-scan', async (_evt, payload) => {
         { name: 'All Files', extensions: ['*'] }
       ]
     });
+    restoreFocus();
     if (savePick.canceled) return { ok: false, msg: 'Cancelled.' };
     destPath = savePick.filePath;
   }
 
   try {
     fs.copyFileSync(srcPath, destPath);
-    shell.showItemInFolder(destPath);
-    if (win && !win.isDestroyed()) {
-      setTimeout(() => { try { win.focus(); } catch (_) {} }, 150);
-    }
+    // Intentionally do NOT call shell.showItemInFolder — Explorer steals
+    // focus from the renderer on Windows, leaving text fields unresponsive.
+    // Techs can browse uploaded scans via the Records button in the toolbar.
     return { ok: true, path: destPath };
   } catch (e) {
     logError('upload-scan copy', e);
@@ -322,6 +422,7 @@ ipcMain.handle('save-pdf', async (_evt, payload) => {
       defaultPath: path.join(os.homedir(), 'Desktop', filename),
       filters: [{ name: 'PDF Files', extensions: ['pdf'] }]
     });
+    restoreFocus();
     if (pick.canceled) return { ok: false, msg: 'Cancelled.' };
     destPath = pick.filePath.toLowerCase().endsWith('.pdf')
       ? pick.filePath
@@ -337,12 +438,9 @@ ipcMain.handle('save-pdf', async (_evt, payload) => {
       headerFooterEnabled: false
     });
     fs.writeFileSync(destPath, pdf);
-    shell.showItemInFolder(destPath);
-    // Explorer steals focus; reclaim it so the confirm() dialog lands on
-    // the app window and form inputs remain responsive without an alt-tab.
-    if (win && !win.isDestroyed()) {
-      setTimeout(() => { try { win.focus(); } catch (_) {} }, 150);
-    }
+    // Intentionally do NOT call shell.showItemInFolder — Explorer steals
+    // focus from the renderer on Windows, leaving text fields unresponsive.
+    // Techs can browse saved PDFs via the Records button in the toolbar.
     return { ok: true, path: destPath };
   } catch (e) {
     logError('save-pdf printToPDF', e);
