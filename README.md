@@ -1,7 +1,7 @@
 # SF Service Record
 
 A desktop application for fleet mechanics to fill out, save, and share
-vehicle service records as PDFs — built for **St. Francis Electric** to
+vehicle service records as PDFs, built for **St. Francis Electric** to
 replace a paper-and-folder workflow with a touch-friendly form that
 auto-files into a shared OneDrive folder.
 
@@ -24,10 +24,10 @@ past records, and PDFs that often never got saved at all.
 This app replaces it with a single-screen, scrollable form that:
 
 - **Auto-names** the PDF as `<date>_<unit#>.pdf`
-- **Auto-files** it into a `YYYY-MM` subfolder of the techs's
+- **Auto-files** it into a `YYYY-MM` subfolder of the tech's
   OneDrive-synced SharePoint folder
-- **Auto-syncs** through OneDrive — no Graph API, no OAuth, no IT involvement
-- **Tracks history** — every record saved is searchable later
+- **Auto-syncs** through OneDrive, no Graph API, no OAuth, no IT involvement
+- **Tracks history** every record saved is searchable later
 - **Tracks mileage** per equipment unit over time
 - **Lets older techs** snap a phone photo of a paper sheet and upload
   it directly to SharePoint with one button
@@ -44,26 +44,26 @@ This app replaces it with a single-screen, scrollable form that:
 - CARB Smoke Test status + method
 - Brake pad thickness + tire tread/PSI per wheel position
 - Free-form mechanic comments + recommended follow-up
-- Mouse / touchscreen signature pad
+- Mouse/touchscreen signature pad
 - Status flags: Ready / Lockout-Tagout / Awaiting Parts
 
 ### Workflow tools
-- **Equipment Manager** (PIN-protected) — add/edit/delete the master
+- **Equipment Manager** (PIN-protected), add/edit/delete the master
   equipment list; changes auto-sync to all techs via OneDrive
-- **Service History** — searchable log of every record ever saved
-- **Mileage Tracking** — per-unit mileage entries with auto-logging
+- **Service History** searchable log of every record ever saved
+- **Mileage Tracking** , per-unit mileage entries with auto-logging
   when records are saved
-- **Past Records** — browse saved PDFs by month
-- **Upload Scan** — for techs who'd rather hand-write and photograph;
-  the app names + files the picture automatically
-- **Dark mode** — toggle in toolbar; print output is always white-paper
+- **Past Records** , browse saved PDFs by month
+- **Upload Scan**, for techs who'd rather hand-write and photograph;
+  The app names + files the picture automatically
+- **Dark mode** , toggle in toolbar; print output is always white-paper
 
 ### Behind the scenes
-- Auto-saving drafts (debounced, 400ms) — close the app, reopen, you
+- Auto-saving drafts (debounced, 400ms), close the app, reopen, you
   pick up where you left off
-- Atomic JSON writes (`tmp` + rename) — safe against crashes mid-save,
+- Atomic JSON writes (`tmp` + rename), safe against crashes mid-save,
   important for OneDrive-synced files
-- HiDPI signature canvas — crisp on Retina / 4K displays
+- HiDPI signature canvas, crisp on Retina / 4K displays
 - Content-Security-Policy enforced, no remote network calls, no telemetry
 - Sandbox + context-isolation enabled for the renderer
 
@@ -100,7 +100,7 @@ This app replaces it with a single-screen, scrollable form that:
         └──────────────────────────────────┘
                          │
                          ▼
-                Other techs / office
+                Other techs/office
             (read-only sync via OneDrive)
 ```
 
@@ -155,7 +155,7 @@ npm start
 ```
 
 Requires Node.js 18+ and npm. The app will launch with the SharePoint
-folder unconfigured — click the **📁 SharePoint** button in the toolbar
+folder unconfigured , click the **📁 SharePoint** button in the toolbar
 to point it at any folder you'd like saved records to land in.
 
 ### Build a Windows installer
@@ -204,20 +204,20 @@ to set your own PIN, or fork this repo and change `DEFAULT_PIN` in
 - All file paths from the renderer are validated in main before being
   passed to `shell.openPath`.
 - Renderer runs sandboxed with context isolation. No direct Node access.
-- Default Admin PIN is hardcoded — see Configuration above. Change it
-  before any production deployment.
+- Default Admin PIN is hardcoded, see Configuration above. Could you change it
+before any production deployment
 
 ---
 
 ## Tech stack
 
-- **Electron 28** — desktop runtime
-- **Vanilla JavaScript** — no framework, no bundler, ~480 lines of JS
+- **Electron 28** , desktop runtime
+- **Vanilla JavaScript** , no framework, no bundler, ~480 lines of JS
   in the renderer
-- **Native HTML5 forms + CSS** — no UI library
-- **Native Windows Script Host (VBScript)** — for the install-side
+- **Native HTML5 forms + CSS** , no UI library
+- **Native Windows Script Host (VBScript)**, for the install-side
   shortcut creator (no PowerShell execution-policy headaches)
-- **Atomic file I/O via `fs.renameSync`** — for crash-safety on
+- **Atomic file I/O via `fs.renameSync`** for crash-safety on
   OneDrive-synced shared JSON files
 - **No backend, no database, no auth provider, no telemetry**
 
@@ -232,4 +232,6 @@ Built by **Marcus White** for St. Francis Electric's fleet shop.
 
 ## License
 
+v1.1.7-updates
 [MIT](LICENSE) — free to fork, adapt, and deploy in your own shop.
+
