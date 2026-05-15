@@ -232,4 +232,6 @@ Built by **Marcus White** for St. Francis Electric's fleet shop.
 
 ## License
 
-[MIT](LICENSE), free to fork, adapt, and deploy in your own shop.
+v1.1.7-updates
+[MIT](LICENSE) — free to fork, adapt, and deploy in your own shop.
+
