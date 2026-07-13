@@ -9,7 +9,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // Save / print
   savePDF:              (data)  => ipcRenderer.invoke('save-pdf', data),
+  printPage:            (opts)  => ipcRenderer.invoke('print-page', opts),
   uploadScan:           (data)  => ipcRenderer.invoke('upload-scan', data),
+
+  // BIT inspections (CHP 108 year-logs)
+  getBit:               ()      => ipcRenderer.invoke('get-bit'),
+  saveBit:              (data)  => ipcRenderer.invoke('save-bit', data),
 
   // Equipment DB
   getEquipment:         ()      => ipcRenderer.invoke('get-equipment'),
@@ -27,6 +32,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getMileage:           ()      => ipcRenderer.invoke('get-mileage'),
   appendMileage:        (data)  => ipcRenderer.invoke('append-mileage', data),
 
+  // Parts list
+  getParts:             ()      => ipcRenderer.invoke('get-parts'),
+  saveParts:            (data)  => ipcRenderer.invoke('save-parts', data),
+
   // Past records
   scanRecords:          ()      => ipcRenderer.invoke('scan-records'),
   openFile:             (p)     => ipcRenderer.invoke('open-file', p),
@@ -38,4 +47,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // Focus restore — call after a native confirm() dialog returns control
   restoreFocus:         ()      => ipcRenderer.invoke('restore-focus'),
+
+  // Open the log folder in Explorer (for support — tech sends us main.log)
+  openLogFolder:        ()      => ipcRenderer.invoke('open-log-folder'),
 });

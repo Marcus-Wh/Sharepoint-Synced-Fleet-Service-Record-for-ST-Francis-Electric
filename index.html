@@ -45,6 +45,13 @@
   .tb-btn-primary:hover { background:#a93226; }
   .tb-btn-secondary { background:rgba(255,255,255,.13); }
   .toolbar-spacer { flex:1; }
+  /* ── Toolbar dropdown menu ── */
+  .tb-menu { position:relative; flex-shrink:0; }
+  .tb-menu-panel { position:absolute; top:calc(100% + 6px); left:0; min-width:170px; background:var(--modal-bg); border:1px solid var(--rule); border-radius:5px; box-shadow:0 10px 24px rgba(0,0,0,.28); padding:4px; z-index:120; display:none; }
+  .tb-menu.open .tb-menu-panel { display:block; }
+  .tb-menu-item { display:flex; align-items:center; gap:8px; width:100%; text-align:left; font-family:'Barlow Condensed',sans-serif; font-size:13px; font-weight:700; letter-spacing:.5px; text-transform:uppercase; padding:8px 10px; border:none; border-radius:3px; background:transparent; color:var(--ink); cursor:pointer; white-space:nowrap; }
+  .tb-menu-item:hover { background:rgba(0,0,0,.07); }
+  [data-theme="dark"] .tb-menu-item:hover { background:rgba(255,255,255,.10); }
   #sharepoint-status { font-size:11px; color:rgba(255,255,255,.4); max-width:220px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex-shrink:1; }
   #sharepoint-status.configured { color:#6dbf6d; }
 
@@ -178,6 +185,8 @@
 
   /* ── PIN ── */
   .pin-overlay { position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:300; display:flex; align-items:center; justify-content:center; }
+  /* Shared alert/confirm/prompt dialog must sit above every other modal (200) and the PIN overlay (300). */
+  #sf-dialog-modal { z-index:400; }
   .pin-overlay[hidden] { display:none; }
   .pin-panel { background:var(--modal-bg); width:300px; border-radius:6px; box-shadow:0 8px 32px rgba(0,0,0,.35); overflow:hidden; }
   .pin-header { background:#1a1a1a; padding:14px 18px; }
@@ -218,6 +227,57 @@
   /* ── Empty state ── */
   .empty-state { text-align:center; padding:32px 16px; color:var(--meta-color); font-size:13px; }
 
+  /* ── Form tabs (Service Record / BIT Inspection) ── */
+  .form-tabs { display:flex; justify-content:center; gap:8px; padding:12px 12px 0; }
+  .form-tab { font-family:'Barlow Condensed',sans-serif; font-size:13px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; padding:8px 22px; border:1px solid var(--rule); border-radius:6px 6px 0 0; background:transparent; color:var(--meta-color); cursor:pointer; }
+  .form-tab:hover { color:var(--ink); }
+  .form-tab.active { background:var(--page-bg); color:var(--ink); border-color:var(--ink); }
+
+  /* ── BIT Inspection page (CHP 108 replica) ── */
+  .bit-page { max-width:1160px; }
+  .bit-header { padding:10px 16px; border-bottom:2px solid var(--ink); display:flex; justify-content:space-between; align-items:flex-end; gap:12px; }
+  .bit-agency { font-size:9px; letter-spacing:.5px; text-transform:uppercase; color:var(--ink); line-height:1.5; }
+  .bit-form-title { font-family:'Barlow Condensed',sans-serif; font-size:20px; font-weight:900; letter-spacing:2px; text-transform:uppercase; color:var(--ink); }
+  .bit-form-meta { font-size:9px; color:var(--meta-color); margin-top:2px; }
+  .bit-star-note { font-size:10px; font-style:italic; text-align:right; color:var(--ink); }
+  .bit-controls { display:flex; align-items:center; gap:10px; padding:8px 12px; border-bottom:1px solid var(--rule); flex-wrap:wrap; }
+  .bit-controls label { font-size:10px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:var(--label-color); }
+  .bit-controls select { border:1px solid var(--rule); border-radius:3px; padding:3px 6px; font-family:'Barlow',sans-serif; font-size:12px; background:var(--page-bg); color:var(--ink); outline:none; }
+  .bit-type-btn { font-family:'Barlow Condensed',sans-serif; font-size:12px; font-weight:700; letter-spacing:1px; text-transform:uppercase; padding:4px 12px; border:1px solid var(--rule); border-radius:3px; background:transparent; color:var(--meta-color); cursor:pointer; }
+  .bit-type-btn.active { background:var(--accent); border-color:var(--accent); color:#fff; }
+  .bit-hint { font-size:11px; color:var(--meta-color); }
+  #bit-save-status { font-size:11px; font-weight:600; color:#2e7d32; margin-left:auto; white-space:nowrap; }
+  [data-theme="dark"] #bit-save-status { color:#6dbf6d; }
+  .bit-info { display:grid; grid-template-columns:2fr 2fr 80px 1fr 1fr; border-bottom:2px solid var(--ink); }
+  .bit-grid-scroll { overflow-x:auto; }
+  .bit-table { width:100%; border-collapse:collapse; table-layout:fixed; }
+  .bit-table th, .bit-table td { border:1px solid var(--rule); }
+  .bit-corner { width:315px; font-size:9px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:var(--label-color); text-align:left; padding:3px 6px; }
+  .bit-mileage { padding:2px 3px; vertical-align:bottom; }
+  .bit-mileage span { display:block; font-size:7px; font-weight:700; letter-spacing:.5px; text-transform:uppercase; color:var(--label-color); text-align:center; }
+  .bit-mileage input { width:100%; border:none; border-bottom:1px solid var(--rule); background:transparent; font-family:'Barlow',sans-serif; font-size:10px; text-align:center; color:var(--ink); outline:none; padding:1px 0; }
+  .bit-mileage input:focus { border-bottom-color:var(--accent); }
+  .bit-item-label { font-size:10.5px; padding:2px 6px; color:var(--ink); overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
+  .bit-star { color:var(--accent); font-weight:700; }
+  .bit-cell { padding:0; }
+  .bit-cell select { width:100%; border:none; background:transparent; font-family:'Barlow',sans-serif; font-size:10px; text-align:center; text-align-last:center; color:var(--ink); outline:none; cursor:pointer; padding:2px 0; }
+  .bit-cell select.def { color:var(--accent); font-weight:700; }
+  .bit-sig-grid { display:grid; grid-template-columns:repeat(4,1fr); border-bottom:1px solid var(--rule); }
+  .bit-sig-cell { border-right:1px solid var(--rule); border-bottom:1px solid var(--check-item-border); padding:5px 8px; }
+  .bit-sig-cell:nth-child(4n) { border-right:none; }
+  .bit-sig-cell label { display:block; font-size:8px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:var(--label-color); margin-bottom:3px; }
+  .bit-sig-row { display:flex; gap:8px; align-items:flex-end; }
+  .bit-sig-row input[type="text"] { flex:1; border:none; border-bottom:1px solid var(--rule); background:transparent; font-family:'Barlow',sans-serif; font-size:11px; color:var(--ink); outline:none; min-width:0; padding:1px 0; }
+  .bit-sig-row input[type="date"] { width:112px; border:none; border-bottom:1px solid var(--rule); background:transparent; font-family:'Barlow',sans-serif; font-size:10px; color:var(--ink); outline:none; padding:1px 0; }
+  .bit-sig-row input:focus { border-bottom-color:var(--accent); }
+  .bit-rep-head { display:grid; grid-template-columns:118px 96px 150px 1fr; gap:10px; padding:6px 12px 0; }
+  .bit-rep-head span { font-size:8px; font-weight:700; letter-spacing:1.2px; text-transform:uppercase; color:var(--label-color); }
+  .bit-rep-row { display:grid; grid-template-columns:118px 96px 150px 1fr; gap:10px; padding:4px 12px 6px; align-items:start; border-bottom:1px solid var(--check-item-border); }
+  .bit-rep-row input { border:none; border-bottom:1px solid var(--rule); background:transparent; font-family:'Barlow',sans-serif; font-size:12px; color:var(--ink); outline:none; padding:3px 0; width:100%; }
+  .bit-rep-row input:focus { border-bottom-color:var(--accent); }
+  .bit-rep-note { min-height:34px; font-size:12px; padding:5px 6px; line-height:1.45; }
+  .bit-rep-add-wrap { padding:6px 12px 10px; }
+
   /* ── Print ── */
   @media print {
     /* Force light-theme colors regardless of user's current theme,
@@ -249,6 +309,13 @@
     .section-header { padding:4px 10px; font-size:10px; page-break-after:avoid; }
     .check-item { padding:4px 8px; gap:6px; }
     .check-item .check-label { font-size:10px; }
+    /* The native dropdown arrow clips longer values on paper ("Replace"->"Replacer",
+       "Changed"->"Changec"). Remove the arrow (cosmetic only in a PDF) and let the box
+       size to its content so the full selection always prints. */
+    .check-item select, .measure-row select {
+      -webkit-appearance:none !important; -moz-appearance:none !important; appearance:none !important;
+      max-width:none !important; width:auto !important; padding-right:2px !important; text-overflow:clip !important;
+    }
     .measure-group { padding:8px 10px; }
     .measure-title { font-size:10px; margin-bottom:6px; }
     .measure-row { margin-bottom:4px; gap:8px; }
@@ -265,6 +332,41 @@
     .status-item.active.parts   { background:#fff3cd !important; }
     .carb-box { margin:6px 10px; padding:8px 10px; }
     .sig-clear-btn, .page-credit { display:none; }
+
+    /* BIT / CHP 108 — prints landscape (flag passed to printToPDF/print).
+       Sized so the full truck grid + signatures fit ONE landscape page;
+       the Service/Repair Report flows below and onto page 2 if it's long. */
+    .form-tabs, .bit-controls { display:none !important; }
+    .bit-page { max-width:100%; }
+    .bit-header { padding:4px 12px; }
+    .bit-agency { font-size:7px; line-height:1.3; }
+    .bit-form-title { font-size:13px; letter-spacing:1px; }
+    .bit-form-meta { font-size:7px; margin-top:1px; }
+    .bit-star-note { font-size:8px; }
+    .bit-info .info-cell { padding:2px 6px; }
+    .bit-info .info-cell label { font-size:6px; margin-bottom:1px; }
+    .bit-info .info-cell input { font-size:9px; }
+    .bit-corner { width:250px; font-size:7px; padding:1px 4px; }
+    .bit-item-label { font-size:7px; padding:0 3px; }
+    .bit-mileage { padding:0 2px 1px; }
+    .bit-mileage span { font-size:5.5px; }
+    .bit-mileage input { font-size:7px; padding:0; }
+    .bit-cell select { font-size:7px; padding:0; line-height:1.1; -webkit-appearance:none !important; appearance:none !important; }
+    .bit-page .section-header { padding:2px 8px; font-size:8px; }
+    .bit-sig-grid { grid-template-columns:repeat(6,1fr); page-break-inside:avoid; }
+    .bit-sig-cell { padding:1px 4px; border-right:1px solid #c0c0c0 !important; }
+    .bit-sig-cell:nth-child(6n) { border-right:none !important; }
+    .bit-sig-cell label { font-size:5.5px; margin-bottom:1px; }
+    .bit-sig-row { gap:4px; }
+    .bit-sig-row input[type="text"] { font-size:8px; padding:0; }
+    .bit-sig-row input[type="date"] { font-size:7px; width:64px; padding:0; }
+    .bit-rep-head, .bit-rep-row { grid-template-columns:70px 70px 110px 1fr; gap:6px; padding:1px 8px; }
+    .bit-rep-head span { font-size:6px; }
+    .bit-rep-row { page-break-inside:avoid; }
+    .bit-rep-row input { font-size:8px; padding:1px 0; }
+    .bit-rep-row .print-comments { font-size:8px; min-height:0; padding:2px 4px; line-height:1.3; }
+    .bit-rep-row.print-empty, #bit-reps.print-empty, .bit-rep-add-wrap { display:none !important; }
+    .bit-page input[type="date"]::-webkit-calendar-picker-indicator { display:none !important; }
     * { -webkit-print-color-adjust:exact; print-color-adjust:exact; }
   }
 </style>
@@ -278,12 +380,19 @@
     <span class="toolbar-brand-name">SFE Service Record</span>
   </div>
   <div class="toolbar-sep"></div>
-  <button class="tb-btn" onclick="openEquipmentManager()">&#9881; Equipment</button>
   <button class="tb-btn" onclick="openHistory()">&#128196; History</button>
-  <button class="tb-btn" onclick="openMileage()">&#128663; Mileage</button>
   <button class="tb-btn" onclick="openRecords()">&#128269; Records</button>
+  <button class="tb-btn" onclick="openParts()" title="Look up part numbers for common jobs">&#128295; Parts</button>
   <button class="tb-btn" onclick="uploadScan()" title="Upload a phone photo or scan of a paper service record">&#128247; Upload</button>
-  <button class="tb-btn" onclick="openSettings()">&#128193; SharePoint</button>
+  <div class="tb-menu" id="tools-menu">
+    <button class="tb-btn" onclick="toggleToolsMenu(event)" aria-haspopup="true">&#9881; Tools &#9662;</button>
+    <div class="tb-menu-panel">
+      <button class="tb-menu-item" onclick="closeToolsMenu();openEquipmentManager()">&#9881; Equipment</button>
+      <button class="tb-menu-item" onclick="closeToolsMenu();openMileage()">&#128663; Mileage</button>
+      <button class="tb-menu-item" onclick="closeToolsMenu();openSettings()">&#128193; SharePoint</button>
+      <button class="tb-menu-item" onclick="closeToolsMenu();openLogs()" title="Open the error log folder — attach main.log to support emails when something breaks">&#128221; Error Log</button>
+    </div>
+  </div>
   <div class="toolbar-spacer"></div>
   <span id="sharepoint-status">Not configured</span>
   <div class="toolbar-sep"></div>
@@ -330,6 +439,8 @@
     </div>
     <div class="modal-body">
       <div id="sf-dialog-message" style="font-size:13px;white-space:pre-wrap;line-height:1.5;margin-bottom:18px;word-break:break-word"></div>
+      <input type="text" id="sf-dialog-input" list="sf-dialog-list" hidden style="width:100%;box-sizing:border-box;border:1px solid var(--rule);border-radius:3px;padding:8px 10px;font-family:'Barlow',sans-serif;font-size:13px;background:var(--page-bg);color:var(--ink);outline:none;margin-bottom:18px">
+      <datalist id="sf-dialog-list"></datalist>
       <div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap">
         <button class="tb-btn" id="sf-dialog-cancel" style="display:none">Cancel</button>
         <button class="tb-btn tb-btn-primary" id="sf-dialog-ok">OK</button>
@@ -437,6 +548,41 @@
   </div>
 </div>
 
+<!-- Parts list modal -->
+<div class="modal-overlay" id="parts-modal" hidden>
+  <div class="modal-panel">
+    <div class="modal-header">
+      <span class="modal-title">&#128295; Parts List</span>
+      <button class="modal-close" onclick="closeModal('parts-modal')">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div style="margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--rule)">
+        <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--meta-color);margin-bottom:8px">Add Part</div>
+        <div class="form-row">
+          <div class="form-field"><label>Job</label><input type="text" id="part-job" list="part-jobs" placeholder="Brake Job"></div>
+          <div class="form-field" style="max-width:140px"><label>Part #</label><input type="text" id="part-num" placeholder="PN123"></div>
+          <div class="form-field"><label>Description</label><input type="text" id="part-desc" placeholder="Brake pads"></div>
+          <div class="form-field" style="max-width:70px"><label>Qty</label><input type="text" id="part-qty" placeholder="1"></div>
+          <div class="form-field" style="max-width:130px"><label>Vendor</label><input type="text" id="part-vendor" placeholder="NAPA"></div>
+          <div class="form-field"><label>Notes</label><input type="text" id="part-notes" placeholder="Optional"></div>
+        </div>
+        <datalist id="part-jobs"></datalist>
+        <div style="display:flex;gap:8px;margin-top:6px;align-items:center">
+          <button class="tb-btn tb-btn-primary" onclick="savePartEntry()">Add Part</button>
+          <button class="tb-btn" onclick="document.getElementById('parts-csv-input').click()" title="Import from a CSV exported from Excel">&#128229; Import CSV</button>
+          <button class="tb-btn" onclick="exportPartsCSV()" title="Export the full parts list to a CSV file">&#128228; Export CSV</button>
+          <input type="file" id="parts-csv-input" accept=".csv,text/csv" hidden onchange="importPartsCSV(this)">
+          <span id="parts-msg" style="font-size:11px;color:var(--meta-color)"></span>
+        </div>
+      </div>
+      <div style="margin-bottom:10px">
+        <input type="text" id="parts-search" placeholder="Filter by job, part #, or description..." style="border:1px solid var(--rule);border-radius:3px;padding:6px 10px;width:340px;font-family:'Barlow',sans-serif;font-size:12px;background:var(--page-bg);color:var(--ink);outline:none" oninput="renderParts()">
+      </div>
+      <div id="parts-content"><div class="empty-state">Loading...</div></div>
+    </div>
+  </div>
+</div>
+
 <!-- Records modal -->
 <div class="modal-overlay" id="records-modal" hidden>
   <div class="modal-panel">
@@ -455,7 +601,13 @@
 </div>
 
 <!-- Main form -->
-<div class="page-wrap"><div class="page">
+<!-- Form tabs -->
+<div class="form-tabs">
+  <button class="form-tab active" id="tab-sr" onclick="showTab('sr')">Service Record</button>
+  <button class="form-tab" id="tab-bit" onclick="showTab('bit')">BIT Inspection &mdash; CHP 108</button>
+</div>
+
+<div class="page-wrap" id="sr-wrap"><div class="page">
 
   <div class="header">
     <img class="header-logo" src="./assets/icon.png" alt="St. Francis Electric">
@@ -473,7 +625,7 @@
       </div>
       <div class="equipment-meta" id="equipment-meta">Type a unit number, make, or description.</div>
     </div>
-    <div class="info-cell"><label>Job #</label><input type="text" id="job-number" placeholder="JOB-0000"></div>
+    <div class="info-cell"><label>Location</label><input type="text" id="job-number" placeholder="JOB-0000"></div>
     <div class="info-cell"><label>Technician</label><input type="text" id="technician" placeholder="Name"></div>
   </div>
 
@@ -494,12 +646,12 @@
 
   <div class="section-header">Inspection Checklist</div>
   <div class="checklist-grid">
-    <div class="check-item"><input type="checkbox"><span class="check-label">Engine Oil</span><select><option>OK</option><option>Check</option><option>Low</option><option>Changed</option><option>N/A</option></select></div>
-    <div class="check-item"><input type="checkbox"><span class="check-label">Coolant</span><select><option>OK</option><option>Check</option><option>Low</option><option>Flush</option><option>N/A</option></select></div>
-    <div class="check-item"><input type="checkbox"><span class="check-label">Trans Fluid</span><select><option>OK</option><option>Check</option><option>Low</option><option>Changed</option><option>N/A</option></select></div>
-    <div class="check-item"><input type="checkbox"><span class="check-label">Brake Fluid</span><select><option>OK</option><option>Check</option><option>Low</option><option>Flush</option><option>N/A</option></select></div>
+    <div class="check-item"><input type="checkbox"><span class="check-label">Engine Oil</span><select><option>OK</option><option>Check</option><option>Low</option><option>Changed</option><option>Leaking</option><option>N/A</option></select></div>
+    <div class="check-item"><input type="checkbox"><span class="check-label">Coolant</span><select><option>OK</option><option>Check</option><option>Low</option><option>Flush</option><option>Leaking</option><option>N/A</option></select></div>
+    <div class="check-item"><input type="checkbox"><span class="check-label">Trans Fluid</span><select><option>OK</option><option>Check</option><option>Low</option><option>Changed</option><option>Leaking</option><option>Repair</option><option>N/A</option></select></div>
+    <div class="check-item"><input type="checkbox"><span class="check-label">Brake Fluid</span><select><option>OK</option><option>Check</option><option>Low</option><option>Flush</option><option>Leaking</option><option>N/A</option></select></div>
     <div class="check-item"><input type="checkbox"><span class="check-label">Power Steering</span><select><option>OK</option><option>Check</option><option>Low</option><option>Flush</option><option>N/A</option></select></div>
-    <div class="check-item"><input type="checkbox"><span class="check-label">Diff / Transfer</span><select><option>OK</option><option>Check</option><option>Low</option><option>Changed</option><option>N/A</option></select></div>
+    <div class="check-item"><input type="checkbox"><span class="check-label">Diff / Transfer</span><select><option>OK</option><option>Check</option><option>Low</option><option>Changed</option><option>Leaking</option><option>N/A</option></select></div>
     <div class="check-item"><input type="checkbox"><span class="check-label">Air Filter</span><select><option>OK</option><option>Check</option><option>Replace</option><option>Replaced</option><option>N/A</option></select></div>
     <div class="check-item"><input type="checkbox"><span class="check-label">Fuel Filter</span><select><option>OK</option><option>Check</option><option>Replace</option><option>Replaced</option><option>N/A</option></select></div>
     <div class="check-item"><input type="checkbox"><span class="check-label">Cabin Filter</span><select><option>OK</option><option>Check</option><option>Replace</option><option>Replaced</option><option>N/A</option></select></div>
@@ -535,7 +687,7 @@
     </div>
     <div class="measure-row" style="margin-top:6px">
       <label>Method</label>
-      <select style="width:220px"><option>OBD</option><option>J1939</option><option>J1979</option><option>NON-OBD (SAE J1667)</option></select>
+      <select style="width:220px"><option>J1939(Deutsch HD)</option><option>J1979(obd2)</option><option>NON-OBD (SAE J1667)</option></select>
     </div>
   </div>
 
@@ -549,12 +701,12 @@
     </div>
     <div class="measure-group">
       <div class="measure-title">Tire Condition / Tread Depth</div>
-      <div class="measure-row"><label>LF</label><input type="text" placeholder="—"><span class="unit">/32</span><input type="text" placeholder="PSI" style="width:52px"><span class="unit">psi</span><select style="width:92px"><option>OK</option><option>Check</option><option>Damaged</option><option>Replace</option><option>N/A</option></select></div>
-      <div class="measure-row"><label>RF</label><input type="text" placeholder="—"><span class="unit">/32</span><input type="text" placeholder="PSI" style="width:52px"><span class="unit">psi</span><select style="width:92px"><option>OK</option><option>Check</option><option>Damaged</option><option>Replace</option><option>N/A</option></select></div>
-      <div class="measure-row"><label>LR O</label><input type="text" placeholder="—"><span class="unit">/32</span><input type="text" placeholder="PSI" style="width:52px"><span class="unit">psi</span><select style="width:92px"><option>OK</option><option>Check</option><option>Damaged</option><option>Replace</option><option>N/A</option></select></div>
-      <div class="measure-row"><label>RR O</label><input type="text" placeholder="—"><span class="unit">/32</span><input type="text" placeholder="PSI" style="width:52px"><span class="unit">psi</span><select style="width:92px"><option>OK</option><option>Check</option><option>Damaged</option><option>Replace</option><option>N/A</option></select></div>
-      <div class="measure-row"><label>LR I</label><input type="text" placeholder="—"><span class="unit">/32</span><input type="text" placeholder="PSI" style="width:52px"><span class="unit">psi</span><select style="width:92px"><option>OK</option><option>Check</option><option>Damaged</option><option>Replace</option><option>N/A</option></select></div>
-      <div class="measure-row"><label>RR I</label><input type="text" placeholder="—"><span class="unit">/32</span><input type="text" placeholder="PSI" style="width:52px"><span class="unit">psi</span><select style="width:92px"><option>OK</option><option>Check</option><option>Damaged</option><option>Replace</option><option>N/A</option></select></div>
+      <div class="measure-row"><label>LF</label><input type="text" placeholder="—"><span class="unit">/32</span><input type="text" placeholder="PSI" style="width:52px"><span class="unit">psi</span><select style="width:92px"><option>OK</option><option>Check</option><option>Damaged</option><option>Replace</option><option>Cupping/uneven wear</option><option>N/A</option></select></div>
+      <div class="measure-row"><label>RF</label><input type="text" placeholder="—"><span class="unit">/32</span><input type="text" placeholder="PSI" style="width:52px"><span class="unit">psi</span><select style="width:92px"><option>OK</option><option>Check</option><option>Damaged</option><option>Replace</option><option>Cupping/uneven wear</option><option>N/A</option></select></div>
+      <div class="measure-row"><label>LR O</label><input type="text" placeholder="—"><span class="unit">/32</span><input type="text" placeholder="PSI" style="width:52px"><span class="unit">psi</span><select style="width:92px"><option>OK</option><option>Check</option><option>Damaged</option><option>Replace</option><option>Cupping/uneven wear</option><option>N/A</option></select></div>
+      <div class="measure-row"><label>RR O</label><input type="text" placeholder="—"><span class="unit">/32</span><input type="text" placeholder="PSI" style="width:52px"><span class="unit">psi</span><select style="width:92px"><option>OK</option><option>Check</option><option>Damaged</option><option>Replace</option><option>Cupping/uneven wear</option><option>N/A</option></select></div>
+      <div class="measure-row"><label>LR I</label><input type="text" placeholder="—"><span class="unit">/32</span><input type="text" placeholder="PSI" style="width:52px"><span class="unit">psi</span><select style="width:92px"><option>OK</option><option>Check</option><option>Damaged</option><option>Replace</option><option>Cupping/uneven wear</option><option>N/A</option></select></div>
+      <div class="measure-row"><label>RR I</label><input type="text" placeholder="—"><span class="unit">/32</span><input type="text" placeholder="PSI" style="width:52px"><span class="unit">psi</span><select style="width:92px"><option>OK</option><option>Check</option><option>Damaged</option><option>Replace</option><option>Cupping/uneven wear</option><option>N/A</option></select></div>
     </div>
   </div>
 
@@ -601,6 +753,61 @@
   </div>
 
   <div class="page-credit">Created by <a href="https://github.com/Marcus-Wh" onclick="openGitHub(event)">Marcus White</a> &mdash; St. Francis Electric Fleet Management</div>
+
+</div></div>
+
+<!-- BIT Inspection page — digital CHP 108 (Rev. 6-05). One sheet per unit per
+     calendar year; each 90-day inspection fills the next column, exactly like
+     the paper form. "Form may be reproduced privately" per the CHP. -->
+<div class="page-wrap" id="bit-wrap" hidden><div class="page bit-page">
+
+  <div class="bit-header">
+    <div>
+      <div class="bit-agency">State of California<br>Department of California Highway Patrol</div>
+      <div class="bit-form-title" id="bit-form-title">Truck and/or Tractor Maintenance &amp; Safety Inspection</div>
+      <div class="bit-form-meta">CHP 108 (Rev. 6-05) OPI 062 &mdash; Calendar Year <span id="bit-year-label"></span></div>
+    </div>
+    <div class="bit-star-note">* Inspection of these items meets the minimum<br>requirements of 34505.5 CVC</div>
+  </div>
+
+  <div class="bit-controls">
+    <label>Form</label>
+    <button type="button" class="bit-type-btn active" id="bit-type-truck" onclick="setBitType('truck')">Truck / Tractor</button>
+    <button type="button" class="bit-type-btn" id="bit-type-trailer" onclick="setBitType('trailer')">Trailer</button>
+    <label style="margin-left:10px">Year</label>
+    <select id="bit-cal-year" onchange="bitKeyChanged()"></select>
+    <span class="bit-hint">One sheet per unit per year &mdash; each inspection fills the next column. Entries save automatically.</span>
+    <span id="bit-save-status"></span>
+  </div>
+
+  <div class="bit-info">
+    <div class="info-cell"><label>Carrier Name</label><input type="text" id="bit-carrier" value="St. Francis Electric"></div>
+    <div class="info-cell">
+      <label>Unit #</label>
+      <input type="text" id="bit-unit" list="bit-unit-list" placeholder="Search unit # or description" autocomplete="off" spellcheck="false">
+      <datalist id="bit-unit-list"></datalist>
+    </div>
+    <div class="info-cell"><label>Year</label><input type="text" id="bit-veh-year" placeholder="20XX"></div>
+    <div class="info-cell"><label>Make</label><input type="text" id="bit-make" placeholder="Ford"></div>
+    <div class="info-cell"><label>License #</label><input type="text" id="bit-license" placeholder="&mdash;"></div>
+  </div>
+
+  <div class="bit-grid-scroll"><table class="bit-table" id="bit-table"></table></div>
+
+  <div class="section-header">Signatures of Inspectors</div>
+  <div class="bit-sig-grid" id="bit-sig-grid"></div>
+
+  <!-- Repair/service narrative log — mirrors the CHP 108 "Repair Report" page.
+       A blank row is always available; rows auto-grow as techs fill them.
+       Empty rows are hidden on the printout. -->
+  <div id="bit-reps">
+    <div class="section-header">Service / Repair Report</div>
+    <div class="bit-rep-head"><span>Date</span><span>Mileage / Hours</span><span>Technician</span><span>Service / Repair Performed</span></div>
+    <div id="bit-rep-rows"></div>
+    <div class="bit-rep-add-wrap"><button type="button" class="action-btn" id="bit-rep-add" onclick="addBitRepRow()">&#43; Add Entry</button></div>
+  </div>
+
+  <div class="page-credit">CHP 108 (Rev. 6-05) &mdash; form may be reproduced privately. Digital year-log &mdash; St. Francis Electric Fleet Management.</div>
 
 </div></div>
 
@@ -691,6 +898,12 @@ equipInput.addEventListener('keydown', e => {
 equipClear.addEventListener('click', () => { equipInput.value=''; equipClear.style.display='none'; equipResults.hidden=true; equipMeta.textContent='Type a unit number, make, or description.'; equipInput.focus(); });
 document.addEventListener('click', e => { if (!document.getElementById('equipment-picker').contains(e.target)) equipResults.hidden=true; });
 
+// ── Tools dropdown menu ───────────────────────────────────────────────────
+function toggleToolsMenu(e) { e.stopPropagation(); document.getElementById('tools-menu').classList.toggle('open'); }
+function closeToolsMenu() { document.getElementById('tools-menu').classList.remove('open'); }
+document.addEventListener('click', e => { const m=document.getElementById('tools-menu'); if (m && !m.contains(e.target)) m.classList.remove('open'); });
+document.addEventListener('keydown', e => { if (e.key==='Escape') closeToolsMenu(); });
+
 // ── Auto-expand textareas ─────────────────────────────────────────────────
 function autoExpand(el) { el.style.height='auto'; el.style.height=el.scrollHeight+'px'; }
 document.querySelectorAll('.auto-expand').forEach(ta => {
@@ -778,7 +991,7 @@ function syncPrintComments() {
     pd.textContent = ta.value || '';
   });
 }
-function preparePrintView() { syncPrintComments(); document.body.classList.add('is-printing'); }
+function preparePrintView() { syncPrintComments(); if (typeof markEmptyBitRepRows === 'function') markEmptyBitRepRows(); document.body.classList.add('is-printing'); }
 function cleanupPrintView() { document.body.classList.remove('is-printing'); }
 window.addEventListener('beforeprint', preparePrintView);
 window.addEventListener('afterprint',  cleanupPrintView);
@@ -794,7 +1007,10 @@ let _draftTimer = null;
 function saveDraftNow() {
   try {
     const s = {};
+    // BIT fields are excluded — they persist to the shared sf-bit.json store
+    // (per unit per year), not to the per-machine draft.
     document.querySelectorAll(FORM_SELECTOR).forEach((el, i) => {
+      if (el.closest('#bit-wrap')) return;
       const k = el.id || el.name || ('f' + i);
       s[k] = el.type === 'checkbox' ? el.checked : el.value;
     });
@@ -810,6 +1026,7 @@ function restoreDraft() {
     const raw = localStorage.getItem(DRAFT_KEY); if (!raw) return;
     const s = JSON.parse(raw);
     document.querySelectorAll(FORM_SELECTOR).forEach((el, i) => {
+      if (el.closest('#bit-wrap')) return;
       const k = el.id || el.name || ('f' + i);
       if (!(k in s)) return;
       if (el.type === 'checkbox') el.checked = !!s[k];
@@ -818,21 +1035,23 @@ function restoreDraft() {
     document.querySelectorAll('textarea').forEach(autoExpand);
   } catch (_) {}
 }
-document.addEventListener('input',  e => { if (e.target.matches(FORM_SELECTOR)) saveDraft(); });
-document.addEventListener('change', e => { if (e.target.matches(FORM_SELECTOR)) saveDraft(); });
+document.addEventListener('input',  e => { if (e.target.matches(FORM_SELECTOR) && !e.target.closest('#bit-wrap')) saveDraft(); });
+document.addEventListener('change', e => { if (e.target.matches(FORM_SELECTOR) && !e.target.closest('#bit-wrap')) saveDraft(); });
 // Flush pending draft on close so nothing typed in the last 400ms is lost
 window.addEventListener('beforeunload', saveDraftNow);
 
 // ── Clear form ────────────────────────────────────────────────────────────
 async function clearForm(skipConfirm) {
+  if (activeTab === 'bit' && !skipConfirm) return clearBit();
   if (!skipConfirm && !(await sfConfirm(
     'All fields will be cleared.',
     'New Record',
     { okLabel: 'Start New Service Record', cancelLabel: 'Keep Editing Current Service Record' }
   ))) return;
   try { localStorage.removeItem('srDraft'); } catch(_) {}
-  document.querySelectorAll('input:not([type=password])').forEach(el => el.type==='checkbox'?(el.checked=false):(el.value=''));
-  document.querySelectorAll('select').forEach(el => el.selectedIndex=0);
+  // #bit-wrap is excluded — the BIT year-log is its own form with its own clear.
+  document.querySelectorAll('input:not([type=password])').forEach(el => { if (el.closest('#bit-wrap')) return; el.type==='checkbox'?(el.checked=false):(el.value=''); });
+  document.querySelectorAll('select').forEach(el => { if (el.closest('#bit-wrap')) return; el.selectedIndex=0; });
   document.querySelectorAll('textarea').forEach(el => { el.value=''; autoExpand(el); });
   clearSignature();
   equipResults.hidden=true; equipClear.style.display='none';
@@ -873,9 +1092,16 @@ async function refreshSharepointStatus() {
 }
 async function openSettings() {
   if (!window.electronAPI) { await sfAlert('Settings are only available in the desktop app.'); return; }
-  const p=await window.electronAPI.pickSharepointFolder();
-  if (p) await sfAlert('SharePoint folder set to:\n'+p+'\n\nPDFs will auto-save to YYYY-MM subfolders here.', 'SharePoint Folder');
+  const r=await window.electronAPI.pickSharepointFolder();
+  if (r && r.ok) await sfAlert('SharePoint folder set to:\n'+r.path+'\n\nPDFs will auto-save to YYYY-MM subfolders here.', 'SharePoint Folder');
+  else if (r && r.error) await sfAlert('Could not set SharePoint folder: '+r.error, 'Error');
   refreshSharepointStatus();
+}
+
+async function openLogs() {
+  if (!window.electronAPI) { await sfAlert('Logs are only available in the desktop app.'); return; }
+  const r = await window.electronAPI.openLogFolder();
+  if (r && !r.ok && r.error) await sfAlert('Could not open log folder: '+r.error, 'Error');
 }
 
 // ── Upload paper-scan picture ─────────────────────────────────────────────
@@ -891,8 +1117,8 @@ async function uploadScan() {
     const result = await window.electronAPI.uploadScan({ equipment, date });
     if (result.ok) {
       await sfAlert('Uploaded:\n' + result.path, 'Upload Complete');
-    } else if (result.msg && result.msg !== 'Cancelled.') {
-      await sfAlert('Upload failed: ' + result.msg, 'Error');
+    } else if (!result.cancelled) {
+      await sfAlert('Upload failed: ' + (result.error || 'unknown error'), 'Error');
     }
   } catch (e) {
     await sfAlert('Error: ' + e.message, 'Error');
@@ -901,6 +1127,7 @@ async function uploadScan() {
 
 // ── Save & Print ──────────────────────────────────────────────────────────
 async function finish() {
+  if (activeTab === 'bit') return finishBIT();
   const equipVal=(equipInput?equipInput.value.trim():'');
   const dateEl=document.getElementById('date');
   const date=dateEl?dateEl.value:new Date().toISOString().slice(0,10);
@@ -910,6 +1137,8 @@ async function finish() {
   if (window.electronAPI) {
     try {
       const result=await window.electronAPI.savePDF({equipment:equipVal,date});
+      // Print view stays active so the printout matches the saved PDF.
+      if (result.ok) { try { await window.electronAPI.printPage(); } catch(_) {} }
       cleanupPrintView();
       if (result.ok) {
         const statusEl=document.querySelector('[data-status-box]:checked');
@@ -922,7 +1151,7 @@ async function finish() {
           'Saved',
           { okLabel: 'Start New Service Record', cancelLabel: 'Keep Editing Current Service Record' }
         )) await clearForm(true);
-      } else if (result.msg!=='Cancelled.') { await sfAlert('Save failed: '+result.msg, 'Error'); }
+      } else if (!result.cancelled) { await sfAlert('Save failed: '+(result.error||'unknown error'), 'Error'); }
     } catch(e) { cleanupPrintView(); await sfAlert('Error: '+e.message, 'Error'); }
     return;
   }
@@ -1076,6 +1305,216 @@ async function saveMileageEntry() {
   renderMileage();
 }
 
+// ── Parts List ─────────────────────────────────────────────────────────────
+// partsData: { "Job name": [ {part, desc, vendor, notes}, ... ], ... }
+let partsData={};
+const partsExpanded=new Set();
+async function openParts() {
+  document.getElementById('parts-modal').hidden=false;
+  if (window.electronAPI) { try { partsData=await window.electronAPI.getParts()||{}; } catch(_) { partsData={}; } }
+  renderParts();
+}
+function refreshJobsDatalist() {
+  const dl=document.getElementById('part-jobs'); if(!dl) return;
+  dl.innerHTML=Object.keys(partsData).sort().map(j=>'<option value="'+escHtml(j)+'">').join('');
+}
+function renderParts() {
+  refreshJobsDatalist();
+  const q=((document.getElementById('parts-search')||{}).value||'').toLowerCase().trim();
+  const el=document.getElementById('parts-content');
+  const jobs=Object.keys(partsData).sort((a,b)=>a.localeCompare(b,undefined,{sensitivity:'base'}));
+  if (!jobs.length) { el.innerHTML='<div class="empty-state">No parts yet. Add one above or import a CSV.</div>'; return; }
+  const matchPart=(p,job)=> !q || (job+' '+(p.part||'')+' '+(p.desc||'')+' '+(p.vendor||'')+' '+(p.notes||'')).toLowerCase().includes(q);
+  let html='';
+  jobs.forEach(job=>{
+    const parts=(partsData[job]||[]).filter(p=>matchPart(p,job));
+    if (!parts.length) return;
+    const open=q ? true : partsExpanded.has(job);
+    html+='<div style="margin-bottom:8px;border:1px solid var(--rule);border-radius:4px;overflow:hidden">';
+    html+='<div data-parts-job="'+escHtml(job)+'" style="cursor:pointer;display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--section-header-bg);font-family:\'Barlow Condensed\',sans-serif;font-weight:700;font-size:14px;letter-spacing:1px;color:var(--ink)"><span style="font-size:11px">'+(open?'&#9662;':'&#9656;')+'</span>'+escHtml(job)+'<span style="margin-left:auto;font-size:11px;font-weight:400;color:var(--meta-color)">'+parts.length+' part'+(parts.length===1?'':'s')+'</span><button class="tb-btn" style="padding:2px 7px;font-size:11px" data-rename-job="'+escHtml(job)+'" title="Rename this category">&#9998;</button></div>';
+    if (open) {
+      html+='<table class="data-table"><thead><tr><th>Part #</th><th>Description</th><th>Qty</th><th>Vendor</th><th>Notes</th><th style="width:1%"></th></tr></thead><tbody>';
+      parts.forEach(p=>{
+        const realIdx=(partsData[job]||[]).indexOf(p);
+        html+='<tr><td><strong>'+escHtml(p.part||'')+'</strong></td><td>'+escHtml(p.desc||'')+'</td><td>'+escHtml(p.qty||'')+'</td><td>'+escHtml(p.vendor||'')+'</td><td>'+escHtml(p.notes||'')+'</td>'+
+              '<td style="white-space:nowrap"><button class="tb-btn" style="padding:2px 7px" data-move-job="'+escHtml(job)+'" data-move-idx="'+realIdx+'" title="Move to another category">&#8646;</button> '+
+              '<button class="tb-btn" style="padding:2px 7px" data-del-job="'+escHtml(job)+'" data-del-idx="'+realIdx+'" title="Delete">&times;</button></td></tr>';
+      });
+      html+='</tbody></table>';
+    }
+    html+='</div>';
+  });
+  el.innerHTML=html||'<div class="empty-state">No parts match your search.</div>';
+}
+// Delegated listeners — job names live in data attributes, avoiding fragile
+// inline-onclick string escaping (matches the [data-open-path] pattern).
+document.addEventListener('click', e => {
+  const ren=e.target.closest('[data-rename-job]');
+  if (ren) { e.stopPropagation(); renameJob(ren.getAttribute('data-rename-job')); return; }
+  const hdr=e.target.closest('[data-parts-job]');
+  if (hdr) { const job=hdr.getAttribute('data-parts-job'); if(partsExpanded.has(job)) partsExpanded.delete(job); else partsExpanded.add(job); renderParts(); return; }
+  const mov=e.target.closest('[data-move-job]');
+  if (mov) { movePart(mov.getAttribute('data-move-job'), parseInt(mov.getAttribute('data-move-idx'),10)); return; }
+  const del=e.target.closest('[data-del-job]');
+  if (del) { deletePart(del.getAttribute('data-del-job'), parseInt(del.getAttribute('data-del-idx'),10)); }
+});
+async function movePart(job, idx) {
+  const list=partsData[job]; if(!list||!list[idx]) return;
+  const p=list[idx];
+  const others=Object.keys(partsData).filter(k=>k!==job).sort((a,b)=>a.localeCompare(b,undefined,{sensitivity:'base'}));
+  const target=await sfPrompt('Move "'+(p.desc||p.part||'part')+'" to which category?', 'Move Part', '', others);
+  if (target===null) return;                 // cancelled
+  const dest=target.trim();
+  if (!dest || dest===job) return;
+  list.splice(idx,1);
+  if (!list.length) { delete partsData[job]; partsExpanded.delete(job); }
+  if (!partsData[dest]) partsData[dest]=[];
+  partsData[dest].push(p);
+  partsExpanded.add(dest);
+  await persistParts();
+  renderParts();
+}
+async function renameJob(job) {
+  if (!partsData[job]) return;
+  const next=await sfPrompt('Rename category:', 'Rename Category', job);
+  if (next===null) return;                 // cancelled
+  const target=next.trim();
+  if (!target || target===job) return;     // unchanged or empty
+  if (partsData[target]) {                 // merge into existing category
+    if (!(await sfConfirm('"'+target+'" already exists. Merge "'+job+'" into it?', 'Merge Categories'))) return;
+    partsData[target]=partsData[target].concat(partsData[job]);
+    delete partsData[job];
+  } else {                                 // straight rename, preserving order
+    const rebuilt={};
+    Object.keys(partsData).forEach(k=>{ rebuilt[k===job?target:k]=partsData[k]; });
+    partsData=rebuilt;
+  }
+  if (partsExpanded.delete(job)) partsExpanded.add(target);
+  await persistParts();
+  renderParts();
+}
+async function savePartEntry() {
+  const job=(document.getElementById('part-job').value||'').trim();
+  const part=(document.getElementById('part-num').value||'').trim();
+  const desc=(document.getElementById('part-desc').value||'').trim();
+  const qty=(document.getElementById('part-qty').value||'').trim();
+  const vendor=(document.getElementById('part-vendor').value||'').trim();
+  const notes=(document.getElementById('part-notes').value||'').trim();
+  const msg=document.getElementById('parts-msg');
+  if (!job||!part) { msg.textContent='Job and Part # are required.'; return; }
+  if (!partsData[job]) partsData[job]=[];
+  partsData[job].push({part,desc,qty,vendor,notes});
+  partsExpanded.add(job);
+  await persistParts();
+  document.getElementById('part-num').value=''; document.getElementById('part-desc').value='';
+  document.getElementById('part-qty').value='';
+  document.getElementById('part-vendor').value=''; document.getElementById('part-notes').value='';
+  msg.textContent='Added!'; setTimeout(()=>{msg.textContent='';},2000);
+  renderParts();
+}
+async function deletePart(job,idx) {
+  const list=partsData[job]; if(!list||!list[idx]) return;
+  const p=list[idx];
+  if (!(await sfConfirm('Delete '+(p.part||'part')+(p.desc?' — '+p.desc:'')+' from "'+job+'"?', 'Delete Part'))) return;
+  list.splice(idx,1);
+  if (!list.length) { delete partsData[job]; partsExpanded.delete(job); }
+  await persistParts();
+  renderParts();
+}
+async function persistParts() { if (window.electronAPI) { try { await window.electronAPI.saveParts(partsData); } catch(_) {} } }
+function importPartsCSV(input) {
+  const file=input.files&&input.files[0]; if(!file) return;
+  const msg=document.getElementById('parts-msg');
+  const reader=new FileReader();
+  reader.onload=async()=>{
+    input.value='';
+    try {
+      const rows=parseCSV(String(reader.result||''));
+      if (!rows.length) { msg.textContent='CSV was empty.'; return; }
+      const idx=mapCSVHeaders(rows[0]);
+      const dataRows=idx.hasHeader ? rows.slice(1) : rows;
+      // No Job column in the file → ask which category these parts belong to,
+      // instead of silently dumping everything into "Uncategorized".
+      let fallbackJob='Uncategorized';
+      if (idx.job<0) {
+        const answer=await sfPrompt('This CSV has no Job column. What category should these parts go under?', 'Import Category', '');
+        if (answer===null) { msg.textContent='Import cancelled.'; return; }
+        if (answer) fallbackJob=answer;
+      }
+      let added=0;
+      dataRows.forEach(r=>{
+        const get=k=> idx[k]>=0 ? (r[idx[k]]||'').trim() : '';
+        const job=get('job')||fallbackJob;
+        const part=get('part'), desc=get('desc'), qty=get('qty'), vendor=get('vendor'), notes=get('notes');
+        if (!part && !desc) return;
+        if (!partsData[job]) partsData[job]=[];
+        partsData[job].push({part,desc,qty,vendor,notes});
+        added++;
+      });
+      if (!added) { msg.textContent='No part rows found in CSV.'; return; }
+      await persistParts();
+      renderParts();
+      msg.textContent='Imported '+added+' part'+(added===1?'':'s')+'.';
+      setTimeout(()=>{msg.textContent='';},4000);
+    } catch(e) { msg.textContent='Could not read CSV.'; }
+  };
+  reader.onerror=()=>{ input.value=''; msg.textContent='Could not read file.'; };
+  reader.readAsText(file);
+}
+// Quote a CSV field per RFC 4180 — wrap in quotes if it contains comma/quote/newline.
+function csvCell(v) { const s=String(v==null?'':v); return /[",\r\n]/.test(s) ? '"'+s.replace(/"/g,'""')+'"' : s; }
+function exportPartsCSV() {
+  const msg=document.getElementById('parts-msg');
+  const jobs=Object.keys(partsData).sort((a,b)=>a.localeCompare(b,undefined,{sensitivity:'base'}));
+  if (!jobs.length) { msg.textContent='Nothing to export.'; setTimeout(()=>{msg.textContent='';},2000); return; }
+  const lines=['Job,Part #,Description,Qty,Vendor,Notes'];
+  jobs.forEach(job=>(partsData[job]||[]).forEach(p=>{
+    lines.push([job,p.part,p.desc,p.qty,p.vendor,p.notes].map(csvCell).join(','));
+  }));
+  // BOM so Excel opens UTF-8 correctly; CRLF line endings for Windows/Excel.
+  const blob=new Blob(['﻿'+lines.join('\r\n')], {type:'text/csv;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url; a.download='parts-list-'+new Date().toISOString().slice(0,10)+'.csv';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(url), 1000);
+  msg.textContent='Exported.'; setTimeout(()=>{msg.textContent='';},3000);
+}
+// Map CSV header names → field indices. Recognized columns are case-insensitive;
+// if no header row is detected, falls back to positional order: Job, Part, Desc, Vendor, Notes.
+function mapCSVHeaders(first) {
+  // NOTE: bare "part" maps to DESCRIPTION, not the part number — these sheets (and the
+  // app's own export) use "Part" for the component name and "Part Number"/"Part #" for the
+  // actual number. Keeping "part" in the number list would grab the description column.
+  const known={ job:['job','category','task','section','job / section','job/section'], part:['part #','part#','partnumber','part number','part no','part no.','pn'],
+    desc:['part','desc','description','part description','name','component','item','part name'], qty:['qty','quantity','qnty','qty.'], vendor:['vendor','supplier','source','mfg','manufacturer'], notes:['notes','note','comment','comments','remarks'] };
+  const norm=first.map(c=>(c||'').trim().toLowerCase());
+  const idx={ job:-1, part:-1, desc:-1, qty:-1, vendor:-1, notes:-1, hasHeader:false };
+  Object.keys(known).forEach(field=>{
+    norm.forEach((cell,i)=>{ if(idx[field]<0 && known[field].includes(cell)) { idx[field]=i; idx.hasHeader=true; } });
+  });
+  if (!idx.hasHeader) { idx.job=0; idx.part=1; idx.desc=2; idx.qty=3; idx.vendor=4; idx.notes=5; }
+  return idx;
+}
+// Minimal RFC-4180-ish CSV parser: handles quoted fields, escaped "" quotes, and CRLF.
+function parseCSV(text) {
+  const rows=[]; let row=[], cur='', q=false;
+  for (let i=0;i<text.length;i++) {
+    const c=text[i];
+    if (q) {
+      if (c==='"') { if (text[i+1]==='"') { cur+='"'; i++; } else q=false; }
+      else cur+=c;
+    } else {
+      if (c==='"') q=true;
+      else if (c===',') { row.push(cur); cur=''; }
+      else if (c==='\n') { row.push(cur); rows.push(row); row=[]; cur=''; }
+      else if (c!=='\r') cur+=c;
+    }
+  }
+  if (cur!=='' || row.length) { row.push(cur); rows.push(row); }
+  return rows.filter(r=>r.some(f=>(f||'').trim()!==''));
+}
+
 // ── Past Records ──────────────────────────────────────────────────────────
 let recordsData=[];
 async function openRecords() { document.getElementById('records-modal').hidden=false; await loadRecords(); }
@@ -1117,6 +1556,7 @@ function openGitHub(e) { e.preventDefault(); if(window.electronAPI) window.elect
 // the renderer DOM, so no native window is ever created and no focus
 // transfer happens. Callers must use `await sfConfirm(...)` / `sfAlert(...)`.
 let _sfDialogResolve = null;
+let _sfDialogPrompt = false;
 function _sfShowDialog(opts) {
   return new Promise(resolve => {
     if (_sfDialogResolve) _sfDialogResolve(false);
@@ -1128,18 +1568,29 @@ function _sfShowDialog(opts) {
     cancelBtn.textContent = opts.cancelLabel || 'Cancel';
     const okBtn = document.getElementById('sf-dialog-ok');
     okBtn.textContent = opts.okLabel || 'OK';
+    const input = document.getElementById('sf-dialog-input');
+    _sfDialogPrompt = !!opts.prompt;
+    input.hidden = !opts.prompt;
+    document.getElementById('sf-dialog-list').innerHTML = (opts.prompt && Array.isArray(opts.suggestions))
+      ? opts.suggestions.map(s => '<option value="' + escHtml(s) + '">').join('') : '';
+    if (opts.prompt) input.value = opts.defaultValue || '';
     document.getElementById('sf-dialog-modal').hidden = false;
-    setTimeout(() => okBtn.focus(), 50);
+    setTimeout(() => { if (opts.prompt) { input.focus(); input.select(); } else okBtn.focus(); }, 50);
   });
 }
 function _sfDialogClose(value) {
+  const input = document.getElementById('sf-dialog-input');
+  const result = _sfDialogPrompt ? (value ? input.value.trim() : null) : value;
+  _sfDialogPrompt = false;
   document.getElementById('sf-dialog-modal').hidden = true;
-  if (_sfDialogResolve) { const r = _sfDialogResolve; _sfDialogResolve = null; r(value); }
+  if (_sfDialogResolve) { const r = _sfDialogResolve; _sfDialogResolve = null; r(result); }
 }
 // sfAlert(message, title?) — single OK button
 // sfConfirm(message, title?, opts?) — opts: { okLabel, cancelLabel }
 function sfAlert(message, title)         { return _sfShowDialog({ message, title: title || 'Notice', confirm: false }); }
 function sfConfirm(message, title, opts) { return _sfShowDialog(Object.assign({ message, title: title || 'Confirm', confirm: true }, opts || {})); }
+// sfPrompt(message, title?, defaultValue?) — text input; resolves the trimmed string, or null on cancel
+function sfPrompt(message, title, defaultValue, suggestions) { return _sfShowDialog({ message, title: title || 'Enter', confirm: true, prompt: true, defaultValue: defaultValue || '', suggestions: suggestions }); }
 document.getElementById('sf-dialog-ok').addEventListener('click', () => _sfDialogClose(true));
 document.getElementById('sf-dialog-cancel').addEventListener('click', () => _sfDialogClose(false));
 document.getElementById('sf-dialog-modal').addEventListener('click', e => {
@@ -1152,13 +1603,13 @@ document.addEventListener('keydown', e => {
 });
 
 // ── Auto-update ───────────────────────────────────────────────────────────
-let pendingUpdateDir = null;
+let pendingInstaller = null;
 async function checkForUpdate() {
   if (!window.electronAPI || !window.electronAPI.checkUpdate) return;
   try {
     const r = await window.electronAPI.checkUpdate();
     if (!r || !r.available) return;
-    pendingUpdateDir = r.releaseDir;
+    pendingInstaller = r.installerPath;
     document.getElementById('update-current').textContent = r.current || '—';
     document.getElementById('update-latest').textContent = r.latest || '—';
     document.getElementById('update-notes').textContent = r.notes || '(no release notes)';
@@ -1168,11 +1619,386 @@ async function checkForUpdate() {
 }
 function dismissUpdate() { document.getElementById('update-modal').hidden = true; }
 async function installUpdate() {
-  if (!pendingUpdateDir) return;
+  if (!pendingInstaller) return;
   const btn = document.querySelector('#update-modal .tb-btn-primary');
   if (btn) { btn.disabled = true; btn.textContent = 'Installing…'; }
-  try { await window.electronAPI.applyUpdate(pendingUpdateDir); }
+  try { await window.electronAPI.applyUpdate(pendingInstaller); }
   catch (_) { if (btn) { btn.disabled = false; btn.textContent = 'Install Now & Restart'; } }
+}
+
+// ── BIT Inspection (CHP 108) ──────────────────────────────────────────────
+// Digital replica of the official CHP 108 (Rev. 6-05) year-log: one record
+// per unit per calendar year per form type, keyed "<unit>|<year>|<type>" in
+// the shared sf-bit.json. Each 90-day inspection fills the next column, same
+// as the paper form. Items marked * meet the minimum requirements of
+// 34505.5 CVC (star flags transcribed from the official form).
+const byId = id => document.getElementById(id);
+
+const BIT_TRUCK_ITEMS = [
+  [1,0,'Fire extinguisher and reflective warning devices'],
+  [2,0,'Horn, defroster, gauges, odometer, and speedometer'],
+  [3,0,'Mirrors and supports'],
+  [4,0,'Windshield wipers, window cracks'],
+  [5,0,'All lights, signals, reflectors, mudflaps'],
+  [6,0,'Electrical wiring-condition and protection'],
+  [7,0,'Batteries-water level, terminals, and cables'],
+  [8,1,'Warning devices-air, oil, temperature, anti skid, and/or vacuum'],
+  [9,0,'Radiator and water hoses- coolant level, condition, and/or leaks'],
+  [10,1,'Belts-compressor, fan, water pump, and/or alternator'],
+  [11,1,'Air hoses and tubing leaks, condition, and/or protection'],
+  [12,0,'Fuel system-tank, hoses, tubing, and/or pump; leaks'],
+  [13,0,'Exhaust system, manifolds, piping, muffler; leaks and/or condition'],
+  [14,0,'Engine-mounting, excessive grease and/or oil'],
+  [15,0,'Clutch adjustment-free play'],
+  [16,0,'Air filter, throttle linkage'],
+  [17,0,'Starting and charging system'],
+  [18,1,'Tractor-protection valve'],
+  [19,1,'Hydraulic brake system-adjustment, components, and/or condition'],
+  [20,1,'Hydraulic master cylinder level, leaks, and/or condition'],
+  [21,1,'Hoses and tubing-condition and protection'],
+  [22,1,'Air brake system-adjustment, components, and/or condition'],
+  [23,1,'1 minute air or vacuum loss test'],
+  [24,1,'Air compressor governor cut-in and cut-out pressures (85-130)'],
+  [25,1,'Primary air tank-drain and test check valve'],
+  [26,1,'Other air tank-drain and check for contamination; securement'],
+  [27,1,'Tires-tread depth, inflation, and condition'],
+  [28,1,'Wheels, lug nuts, and studs-cracks, looseness, and/or condition'],
+  [29,1,'Parking brake-able to hold the vehicle'],
+  [30,1,'Emergency stopping system-labeled and operative'],
+  [31,1,'Brakes release after complete loss of service air'],
+  [32,1,'Steering system-mounting, free lash, and components'],
+  [33,1,'Steering arms, drag links, and/or tie rod ends'],
+  [34,1,'Connecting devices- fifth wheel, pintle hitch, and/or safety devices'],
+  [35,1,'Suspension system-springs, shackles, u-bolts, and/or torque rods'],
+  [36,1,'Frame and cross members-cracks and/or condition'],
+  [37,0,'Drive shaft, universal joints, and/or guards'],
+  [38,0,'Transmission and differential-mounting, leaks, and/or condition'],
+  [39,1,'Wheel seals-leaks and/or condition'],
+  [40,0,'Under carriage-clean and secure']
+];
+const BIT_TRAILER_ITEMS = [
+  [1,0,'All lights, signals, reflectors'],
+  [2,0,'Mudflaps'],
+  [3,1,'Air leaks-brake system'],
+  [4,0,'Air leaks-dump system'],
+  [5,0,'Frame, subframe, and body-cracks'],
+  [6,1,'Brake adjustment'],
+  [7,1,'Brake system, drums, and components-condition'],
+  [8,1,'Suspension system-springs, shackles, u-bolts, and/or torque rods'],
+  [9,1,'Connecting device-kingpin, drawbar, eye and/or safety devices'],
+  [10,1,'Fifth wheel on pull trailer'],
+  [11,1,'Air hoses and tubing-leaks, condition, and/or protection'],
+  [12,1,'Tires-tread depth, inflation, and condition'],
+  [13,1,'Wheels, lug nuts, and studs-cracks, looseness, and/or condition'],
+  [14,1,'Hoses and tubing-condition, protection'],
+  [15,1,'Hydraulic Master cylinder-level, leaks, and/or condition'],
+  [16,1,'Parking brake-able to hold the vehicle'],
+  [17,1,'Emergency breakaway brake system'],
+  [18,1,'Air relay valves and tank-mounting'],
+  [19,1,'Brakes release after complete loss of service air'],
+  [20,1,'Wheel seals-leaks and/or condition'],
+  [21,1,'Under carriage-clean and secure']
+];
+const BIT_MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const BIT_COLS = 12;
+
+let activeTab = 'sr';
+let bitInited = false;
+let bitType = 'truck';
+let bitDB = {};          // full contents of sf-bit.json
+let bitLoadedKey = '';   // key of the record currently shown in the form
+let _bitSaveTimer = null;
+let _bitLoading = false; // suppress autosave while programmatically filling the form
+let _bitStatusTimer = null;
+
+function showTab(t) {
+  activeTab = t;
+  byId('sr-wrap').hidden  = t !== 'sr';
+  byId('bit-wrap').hidden = t !== 'bit';
+  byId('tab-sr').classList.toggle('active', t === 'sr');
+  byId('tab-bit').classList.toggle('active', t === 'bit');
+  if (t === 'bit' && !bitInited) initBit();
+  // Textareas measure 0 while hidden — re-expand the ones on the shown page
+  document.querySelectorAll((t === 'sr' ? '#sr-wrap' : '#bit-wrap') + ' textarea.auto-expand').forEach(autoExpand);
+}
+
+function bitItems()    { return bitType === 'truck' ? BIT_TRUCK_ITEMS : BIT_TRAILER_ITEMS; }
+function bitUnitCode() { return (byId('bit-unit').value || '').trim().split(/\s+/)[0] || ''; }
+
+function renderBitGrid() {
+  let html = '<thead><tr><th class="bit-corner">Inspection Item</th>';
+  for (let c = 0; c < BIT_COLS; c++) {
+    html += '<th class="bit-mileage"><span>Mileage</span><input type="text" id="bit-mil-' + c + '" placeholder="&mdash;"></th>';
+  }
+  html += '</tr></thead><tbody>';
+  bitItems().forEach(it => {
+    html += '<tr><td class="bit-item-label" title="' + escHtml(it[2]) + '">' + (it[1] ? '<span class="bit-star">*</span> ' : '') + it[0] + '. ' + escHtml(it[2]) + '</td>';
+    for (let c = 0; c < BIT_COLS; c++) {
+      html += '<td class="bit-cell"><select id="bit-c' + c + '-i' + it[0] + '"><option value=""></option><option>OK</option><option>DEF</option><option>N/A</option></select></td>';
+    }
+    html += '</tr>';
+  });
+  html += '</tbody>';
+  byId('bit-table').innerHTML = html;
+  byId('bit-form-title').textContent = bitType === 'truck'
+    ? 'Truck and/or Tractor Maintenance & Safety Inspection'
+    : 'Trailer Maintenance & Safety Inspection';
+}
+
+function renderBitSigGrid() {
+  byId('bit-sig-grid').innerHTML = BIT_MONTHS.map((m, i) =>
+    '<div class="bit-sig-cell"><label>' + m + ' Inspection</label><div class="bit-sig-row">' +
+    '<input type="text" id="bit-sig-name-' + i + '" placeholder="Inspector">' +
+    '<input type="date" id="bit-sig-date-' + i + '">' +
+    '</div></div>'
+  ).join('');
+}
+
+function updateBitYearLabel() { byId('bit-year-label').textContent = byId('bit-cal-year').value || ''; }
+
+// ── Service/Repair Report rows (mirrors the CHP 108 Repair Report page) ──
+function bitRepRowHtml(i) {
+  return '<div class="bit-rep-row">' +
+    '<input type="date" id="bit-rep-date-' + i + '">' +
+    '<input type="text" id="bit-rep-mil-' + i + '" placeholder="&mdash;">' +
+    '<input type="text" id="bit-rep-tech-' + i + '" placeholder="Name">' +
+    '<div><textarea class="auto-expand bit-rep-note" id="bit-rep-note-' + i + '" placeholder="Describe the service or repair performed..."></textarea></div>' +
+    '</div>';
+}
+function renderBitReps(reps) {
+  reps = Array.isArray(reps) ? reps : [];
+  const n = Math.max(reps.length + 1, 2); // saved entries + one blank to write in
+  let html = '';
+  for (let i = 0; i < n; i++) html += bitRepRowHtml(i);
+  byId('bit-rep-rows').innerHTML = html;
+  reps.forEach((r, i) => {
+    byId('bit-rep-date-' + i).value = r.d || '';
+    byId('bit-rep-mil-' + i).value  = r.m || '';
+    byId('bit-rep-tech-' + i).value = r.t || '';
+    const ta = byId('bit-rep-note-' + i); ta.value = r.note || ''; autoExpand(ta);
+  });
+}
+// Keep one blank row available: once the last row has content, append another
+function maybeAppendBitRepRow() {
+  const rowsEl = byId('bit-rep-rows');
+  const last = rowsEl.lastElementChild; if (!last) return;
+  const has = Array.from(last.querySelectorAll('input,textarea')).some(el => el.value.trim());
+  if (has) rowsEl.insertAdjacentHTML('beforeend', bitRepRowHtml(rowsEl.children.length));
+}
+// "+ Add Entry" button — same thing, but explicit for the techs
+function addBitRepRow() {
+  const rowsEl = byId('bit-rep-rows');
+  rowsEl.insertAdjacentHTML('beforeend', bitRepRowHtml(rowsEl.children.length));
+  // Left blank on purpose — blank rows are dropped from saves and hidden in
+  // print, so an abandoned "+" click never leaves a stray dated entry.
+  const d = rowsEl.lastElementChild.querySelector('input[type="date"]');
+  if (d) d.focus();
+}
+// Blank repair rows (and the whole section, if empty) are hidden on the printout
+function markEmptyBitRepRows() {
+  let any = false;
+  document.querySelectorAll('#bit-rep-rows .bit-rep-row').forEach(row => {
+    const has = Array.from(row.querySelectorAll('input,textarea')).some(el => el.value.trim());
+    row.classList.toggle('print-empty', !has);
+    if (has) any = true;
+  });
+  const sec = byId('bit-reps');
+  if (sec) sec.classList.toggle('print-empty', !any);
+}
+
+function collectBitRecord() {
+  // unit/calYear/type come from the loaded key, NOT the DOM — during a unit
+  // switch the unit input already holds the next unit while we flush the old.
+  const parts = bitLoadedKey.split('|');
+  const items = bitItems();
+  const cols = [];
+  for (let c = 0; c < BIT_COLS; c++) {
+    const v = {};
+    items.forEach(it => { const el = byId('bit-c' + c + '-i' + it[0]); if (el && el.value) v[it[0]] = el.value; });
+    cols.push({ m: (byId('bit-mil-' + c) || {}).value || '', v });
+  }
+  const sigs = [];
+  for (let i = 0; i < BIT_COLS; i++) {
+    sigs.push({ n: (byId('bit-sig-name-' + i) || {}).value || '', d: (byId('bit-sig-date-' + i) || {}).value || '' });
+  }
+  const reps = [];
+  document.querySelectorAll('#bit-rep-rows .bit-rep-row').forEach(row => {
+    const ins = row.querySelectorAll('input');
+    const d = ins[0].value, m = (ins[1].value || '').trim(), t = (ins[2].value || '').trim();
+    const note = ((row.querySelector('textarea') || {}).value || '').trim();
+    if (d || m || t || note) reps.push({ d, m, t, note });
+  });
+  return {
+    unit: parts[0], calYear: parts[1], type: parts[2],
+    carrier: byId('bit-carrier').value || '',
+    vehYear: byId('bit-veh-year').value || '',
+    make: byId('bit-make').value || '',
+    license: byId('bit-license').value || '',
+    cols, sigs, reps,
+    updated: new Date().toISOString()
+  };
+}
+
+function applyBitRecord(rec) {
+  _bitLoading = true;
+  byId('bit-carrier').value  = (rec && rec.carrier) || 'St. Francis Electric';
+  byId('bit-veh-year').value = rec ? (rec.vehYear || '') : '';
+  byId('bit-make').value     = rec ? (rec.make || '') : '';
+  byId('bit-license').value  = rec ? (rec.license || '') : '';
+  const items = bitItems();
+  for (let c = 0; c < BIT_COLS; c++) {
+    const col = rec && rec.cols && rec.cols[c];
+    byId('bit-mil-' + c).value = (col && col.m) || '';
+    items.forEach(it => {
+      const el = byId('bit-c' + c + '-i' + it[0]);
+      const val = (col && col.v && col.v[it[0]]) || '';
+      el.value = val;
+      el.classList.toggle('def', val === 'DEF');
+    });
+  }
+  for (let i = 0; i < BIT_COLS; i++) {
+    const sig = rec && rec.sigs && rec.sigs[i];
+    byId('bit-sig-name-' + i).value = (sig && sig.n) || '';
+    byId('bit-sig-date-' + i).value = (sig && sig.d) || '';
+  }
+  renderBitReps(rec ? rec.reps : []);
+  _bitLoading = false;
+}
+
+function setBitStatus(msg) {
+  const el = byId('bit-save-status');
+  el.textContent = msg;
+  if (_bitStatusTimer) clearTimeout(_bitStatusTimer);
+  _bitStatusTimer = setTimeout(() => { el.textContent = ''; }, 2500);
+}
+
+async function saveBitNow() {
+  if (!bitLoadedKey) return;
+  if (_bitSaveTimer) { clearTimeout(_bitSaveTimer); _bitSaveTimer = null; }
+  const record = collectBitRecord();  // synchronous DOM read — safe before any re-render
+  bitDB[bitLoadedKey] = record;
+  if (window.electronAPI && window.electronAPI.saveBit) {
+    try {
+      const r = await window.electronAPI.saveBit({ key: bitLoadedKey, record });
+      setBitStatus(r && r.ok ? 'Saved ✓' : 'Save failed');
+    } catch (_) { setBitStatus('Save failed'); }
+  }
+}
+function scheduleBitSave() {
+  if (_bitLoading || !bitLoadedKey) return;
+  if (_bitSaveTimer) clearTimeout(_bitSaveTimer);
+  _bitSaveTimer = setTimeout(saveBitNow, 800);
+}
+function flushBitSave() {
+  if (_bitSaveTimer) { clearTimeout(_bitSaveTimer); _bitSaveTimer = null; saveBitNow(); }
+}
+
+// Called when unit, calendar year, or form type changes — flush the previous
+// record, then load (or start) the one for the new key.
+function bitKeyChanged() {
+  flushBitSave();
+  updateBitYearLabel();
+  const code = bitUnitCode();
+  if (!code) { bitLoadedKey = ''; return; }
+  bitLoadedKey = code + '|' + byId('bit-cal-year').value + '|' + bitType;
+  applyBitRecord(bitDB[bitLoadedKey] || null);
+}
+
+function bitUnitChanged() {
+  bitKeyChanged();
+  // Fresh sheet for this unit — prefill year/make from the equipment DB
+  const a = equipmentDB.find(x => x.code === bitUnitCode());
+  if (a) {
+    if (a.year && !byId('bit-veh-year').value) byId('bit-veh-year').value = a.year;
+    if (a.make && !byId('bit-make').value)     byId('bit-make').value = a.make;
+  }
+}
+
+function setBitType(t) {
+  if (t === bitType) return;
+  flushBitSave();
+  bitType = t;
+  byId('bit-type-truck').classList.toggle('active', t === 'truck');
+  byId('bit-type-trailer').classList.toggle('active', t === 'trailer');
+  renderBitGrid();
+  bitKeyChanged();
+}
+
+async function clearBit() {
+  if (!(await sfConfirm(
+    'Clear the BIT form on screen and pick another unit?\nSaved inspection data stays in the log for every unit.',
+    'New BIT Sheet',
+    { okLabel: 'Clear Form', cancelLabel: 'Keep Editing' }
+  ))) return;
+  flushBitSave();
+  bitLoadedKey = '';
+  byId('bit-unit').value = '';
+  applyBitRecord(null);
+}
+
+async function finishBIT() {
+  const unitVal = byId('bit-unit').value.trim();
+  if (!unitVal) { await sfAlert('Choose a unit # first.', 'BIT Inspection'); return; }
+  await saveBitNow();
+  const date = new Date().toISOString().slice(0, 10);
+  const code = bitUnitCode();
+  preparePrintView();
+  if (window.electronAPI) {
+    try {
+      const result = await window.electronAPI.savePDF({ equipment: code + ' BIT-CHP108', date, landscape: true });
+      // Print view stays active so the printout matches the saved PDF.
+      if (result.ok) { try { await window.electronAPI.printPage({ landscape: true }); } catch (_) {} }
+      cleanupPrintView();
+      if (result.ok) {
+        const label = (bitType === 'truck' ? 'Truck/Tractor' : 'Trailer') + ' CHP 108 — ' + byId('bit-cal-year').value;
+        try { await window.electronAPI.appendHistory({ date, equipment: unitVal, job: '', technician: '', status: 'BIT Inspection', notes: label, path: result.path }); } catch (_) {}
+        await sfAlert('Saved:\n' + result.path, 'Saved');
+      } else if (!result.cancelled) { await sfAlert('Save failed: ' + (result.error || 'unknown error'), 'Error'); }
+    } catch (e) { cleanupPrintView(); await sfAlert('Error: ' + e.message, 'Error'); }
+    return;
+  }
+  window.print(); cleanupPrintView();
+}
+
+async function initBit() {
+  bitInited = true;
+  // Calendar-year picker: last two years through next year, default current
+  const ys = byId('bit-cal-year');
+  const nowY = new Date().getFullYear();
+  for (let y = nowY - 2; y <= nowY + 1; y++) {
+    const o = document.createElement('option');
+    o.value = y; o.textContent = y; if (y === nowY) o.selected = true;
+    ys.appendChild(o);
+  }
+  byId('bit-unit-list').innerHTML = equipmentDB.map(a =>
+    '<option value="' + escHtml(a.code + (a.desc ? ' ' + a.desc : '')) + '">').join('');
+  renderBitGrid();
+  renderBitSigGrid();
+  renderBitReps([]);
+  updateBitYearLabel();
+  if (window.electronAPI && window.electronAPI.getBit) {
+    try { bitDB = await window.electronAPI.getBit() || {}; } catch (_) { bitDB = {}; }
+  }
+  byId('bit-unit').addEventListener('change', bitUnitChanged);
+  // Autosave any grid/header edit (unit + year drive loading and are excluded)
+  ['input', 'change'].forEach(ev => byId('bit-wrap').addEventListener(ev, e => {
+    const t = e.target;
+    if (t.id === 'bit-unit' || t.id === 'bit-cal-year') return;
+    if (t.tagName === 'SELECT' && t.closest('.bit-cell')) t.classList.toggle('def', t.value === 'DEF');
+    if (t.classList.contains('auto-expand')) autoExpand(t);
+    if (t.closest('.bit-rep-row')) maybeAppendBitRepRow();
+    scheduleBitSave();
+  }));
+  // Flush a pending autosave if the app closes mid-edit
+  window.addEventListener('beforeunload', flushBitSave);
+  // Prefill from the service record form if a unit is already selected there
+  if (equipInput.value.trim()) {
+    byId('bit-unit').value = equipInput.value.trim();
+    bitUnitChanged();
+    const yr = byId('equipment-year').value, mk = byId('equipment-make').value;
+    if (yr && !byId('bit-veh-year').value) byId('bit-veh-year').value = yr;
+    if (mk && !byId('bit-make').value)     byId('bit-make').value = mk;
+  }
 }
 
 // ── Init ──────────────────────────────────────────────────────────────────
