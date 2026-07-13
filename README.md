@@ -29,6 +29,8 @@ This app replaces it with a single-screen, scrollable form that:
 - **Auto-syncs** through OneDrive, no Graph API, no OAuth, no IT involvement
 - **Tracks history** every record saved is searchable later
 - **Tracks mileage** per equipment unit over time
+- **Tracks BIT inspections** — digital CHP 108 year-logs per unit for
+  California's 90-day terminal inspections
 - **Lets older techs** snap a phone photo of a paper sheet and upload
   it directly to SharePoint with one button
 
@@ -46,6 +48,20 @@ This app replaces it with a single-screen, scrollable form that:
 - Free-form mechanic comments + recommended follow-up
 - Mouse/touchscreen signature pad
 - Status flags: Ready / Lockout-Tagout / Awaiting Parts
+
+### BIT Inspection tab (CHP 108)
+- Digital replica of the official **CHP 108 (Rev. 6-05)** — Truck/Tractor
+  (40-item) and Trailer (21-item) safety inspection checklists, with the
+  `*` markers for items meeting the minimum requirements of 34505.5 CVC
+- **One year-log per unit**: each 90-day BIT inspection fills the next of
+  12 mileage columns, exactly like the paper form
+- OK / DEF / N/A dropdown per item; monthly inspector signature blocks
+- **Service / Repair Report** section — date, mileage/hours, technician,
+  and a free-text write-up per entry, with rows that grow as they're filled
+- Auto-saves per unit to a shared `sf-bit.json`; any tech can reopen a
+  unit's sheet at the next inspection and pick up where the last one left off
+- Prints as a **one-page landscape PDF**, auto-filed into the same
+  `YYYY-MM` folders as regular service records
 
 ### Workflow tools
 - **Equipment Manager** (PIN-protected), add/edit/delete the master
@@ -97,6 +113,7 @@ This app replaces it with a single-screen, scrollable form that:
         │   • sf-equipment.json (shared DB) │
         │   • sf-history.json              │
         │   • sf-mileage.json              │
+        │   • sf-bit.json (CHP 108 logs)   │
         └──────────────────────────────────┘
                          │
                          ▼
@@ -232,6 +249,5 @@ Built by **Marcus White** for St. Francis Electric's fleet shop.
 
 ## License
 
-v1.1.7-updates
 [MIT](LICENSE) — free to fork, adapt, and deploy in your own shop.
 
