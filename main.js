@@ -173,6 +173,7 @@ function createWindow() {
     width: 1020,
     height: 1100,
     minWidth: 840,
+    show: false,
     title: 'St. Francis Electric — Service Record',
     icon: ICON_PATH,
     webPreferences: {
@@ -184,6 +185,9 @@ function createWindow() {
   });
   win.loadFile(path.join(__dirname, 'index.html'));
   win.setMenu(null);
+  // Open maximized (fills the screen but keeps the title bar / close button).
+  // show:false above lets us maximize before first paint to avoid a window-resize flash.
+  win.once('ready-to-show', () => { win.maximize(); win.show(); });
   // Allow F12 to toggle DevTools and Ctrl+R to reload — needed for debugging
   // since the menu is hidden. before-input-event fires before the renderer
   // sees the keystroke, so we don't interfere with normal typing.
@@ -217,6 +221,24 @@ ipcMain.handle('append-history', (_evt, entry) => {
   return writeJSONSafe(p, arr) ? ok() : err('failed to write history file');
 });
 
+// ── IPC: BIT inspections (CHP 108) ───────────────────────────────────────────
+// sf-bit.json is an object keyed by "<unit>|<calendarYear>|<truck|trailer>" →
+// one year-log record per unit per form type (matches the official CHP 108,
+// where each 90-day inspection fills the next column on the same sheet).
+// save-bit re-reads the file and sets only the given key, so two machines
+// editing different units through OneDrive don't clobber each other.
+ipcMain.handle('get-bit', () => readJSONSafe(path.join(sharepointBase(), 'sf-bit.json')) || {});
+ipcMain.handle('save-bit', (_evt, payload) => {
+  if (!payload || typeof payload.key !== 'string' || !payload.key ||
+      !payload.record || typeof payload.record !== 'object') {
+    return err('save-bit: invalid payload');
+  }
+  const p = path.join(sharepointBase(), 'sf-bit.json');
+  const db = readJSONSafe(p) || {};
+  db[payload.key] = payload.record;
+  return writeJSONSafe(p, db) ? ok() : err('failed to write BIT file');
+});
+
 // ── IPC: mileage tracking ────────────────────────────────────────────────────
 ipcMain.handle('get-mileage', () => readJSONSafe(path.join(sharepointBase(), 'sf-mileage.json')) || {});
 ipcMain.handle('append-mileage', (_evt, payload) => {
@@ -227,6 +249,16 @@ ipcMain.handle('append-mileage', (_evt, payload) => {
   if (!db[code]) db[code] = [];
   db[code].push(payload.entry);
   return writeJSONSafe(p, db) ? ok() : err('failed to write mileage file');
+});
+
+// ── IPC: parts list ──────────────────────────────────────────────────────────
+// sf-parts.json is an object keyed by job name → array of parts:
+//   { "Brake Job": [ { part, desc, vendor, notes }, ... ], ... }
+ipcMain.handle('get-parts', () => readJSONSafe(path.join(sharepointBase(), 'sf-parts.json')) || {});
+ipcMain.handle('save-parts', (_evt, data) => {
+  if (!data || typeof data !== 'object' || Array.isArray(data)) return err('save-parts: payload must be an object');
+  const p = path.join(sharepointBase(), 'sf-parts.json');
+  return writeJSONSafe(p, data) ? ok() : err('failed to write parts file');
 });
 
 // ── IPC: scan saved records ──────────────────────────────────────────────────
@@ -291,12 +323,19 @@ ipcMain.handle('set-pin', (_evt, pin) => {
 
 // ── Auto-update ──────────────────────────────────────────────────────────────
 // Update channel is the same OneDrive folder used for equipment + PDFs.
-// Boss publishes a new build by:
-//   1. Dropping app files into <SharePoint>/app-releases/<version>/
-//   2. Editing <SharePoint>/app-version.json to point at it
-// On launch, app reads its own package.json version, compares against the
-// manifest, and (if newer) prompts via a modal. Install Now spawns the
-// updater.bat from %TEMP% so the install folder is unlocked, then quits.
+// Publishing a new build (for NSIS-installed clients):
+//   1. Drop the new "SF Service Record Setup <version>.exe" into
+//      <SharePoint>/installers/
+//   2. Edit <SharePoint>/app-version.json:
+//        { "version": "1.2.1",
+//          "installer": "installers/SF Service Record Setup 1.2.1.exe",
+//          "notes": "...", "mandatory": false }
+// On launch the app reads its own package.json version, compares against the
+// manifest, and (if newer) prompts via a modal. Install Now copies the
+// installer to %TEMP%, spawns updater.bat (which waits for the app to quit,
+// then runs the installer), and quits. The NSIS assisted installer upgrades
+// in place and relaunches the app (runAfterFinish). User data lives in
+// %APPDATA%, so upgrades preserve config/equipment/history.
 function currentVersion() {
   try { return require('./package.json').version || '0.0.0'; }
   catch (_) { return '0.0.0'; }
@@ -319,12 +358,12 @@ ipcMain.handle('check-update', () => {
     const current = currentVersion();
     if (!root) return ok({ available: false, current, reason: 'no-sharepoint' });
     const manifest = readJSONSafe(path.join(root, 'app-version.json'));
-    if (!manifest || !manifest.version || !manifest.folder) {
+    if (!manifest || !manifest.version || !manifest.installer) {
       return ok({ available: false, current, reason: 'no-manifest' });
     }
-    const releaseDir = path.join(root, manifest.folder);
-    if (!fs.existsSync(releaseDir)) {
-      return ok({ available: false, current, reason: 'release-missing' });
+    const installerPath = path.join(root, manifest.installer);
+    if (!fs.existsSync(installerPath)) {
+      return ok({ available: false, current, reason: 'installer-missing' });
     }
     const newer = compareVersions(manifest.version, current) > 0;
     return ok({
@@ -333,26 +372,30 @@ ipcMain.handle('check-update', () => {
       latest: manifest.version,
       notes: manifest.notes || '',
       mandatory: !!manifest.mandatory,
-      releaseDir
+      installerPath
     });
   } catch (e) { logError('check-update', e); return err(e); }
 });
-ipcMain.handle('apply-update', (_evt, releaseDir) => {
+ipcMain.handle('apply-update', (_evt, installerPath) => {
   try {
-    if (typeof releaseDir !== 'string' || !releaseDir || !fs.existsSync(releaseDir)) {
-      return err('apply-update: release directory missing or invalid');
+    if (typeof installerPath !== 'string' || !installerPath || !fs.existsSync(installerPath)) {
+      return err('apply-update: installer missing or invalid');
     }
-    const installDir = app.getAppPath();
+    // Copy the installer locally first — on the shared folder it may be a
+    // cloud-only OneDrive placeholder, and running it from there can stall or
+    // fail. copyFileSync forces hydration into %TEMP%.
+    const tmpInstaller = path.join(os.tmpdir(), 'sf-service-record-setup.exe');
+    fs.copyFileSync(installerPath, tmpInstaller);
     const srcUpdater = path.join(__dirname, 'updater.bat');
     const tmpUpdater = path.join(os.tmpdir(), 'sf-service-record-updater.bat');
     fs.copyFileSync(srcUpdater, tmpUpdater);
-    const child = spawn('cmd.exe', ['/c', 'start', '""', '/min', tmpUpdater, releaseDir, installDir], {
+    const child = spawn('cmd.exe', ['/c', 'start', '""', '/min', tmpUpdater, tmpInstaller], {
       detached: true,
       stdio: 'ignore',
       windowsHide: true
     });
     child.unref();
-    logInfo('apply-update', 'spawned updater for ' + releaseDir);
+    logInfo('apply-update', 'spawned installer ' + tmpInstaller);
     setTimeout(() => app.quit(), 250);
     return ok();
   } catch (e) { logError('apply-update', e); return err(e); }
@@ -483,7 +526,7 @@ ipcMain.handle('save-pdf', async (_evt, payload) => {
     const pdf = await win.webContents.printToPDF({
       printBackground: true,
       pageSize: 'Letter',
-      landscape: false,
+      landscape: !!(payload && payload.landscape),
       marginsType: 0,
       headerFooterEnabled: false
     });
@@ -497,4 +540,18 @@ ipcMain.handle('save-pdf', async (_evt, payload) => {
     logError('save-pdf printToPDF', e);
     return err(e);
   }
+});
+
+// Open the native print dialog for the current page. The renderer keeps its
+// print view active while this runs so the printout matches the saved PDF.
+// success is false if the tech cancels the dialog or has no printer — not an error.
+ipcMain.handle('print-page', (_evt, opts) => {
+  const landscape = !!(opts && opts.landscape);
+  return new Promise(resolve => {
+    win.webContents.print({ silent: false, printBackground: true, pageSize: 'Letter', landscape }, (success, failureReason) => {
+      restoreFocus();
+      if (!success && failureReason && failureReason !== 'cancelled') logError('print-page', failureReason);
+      resolve({ ok: success });
+    });
+  });
 });

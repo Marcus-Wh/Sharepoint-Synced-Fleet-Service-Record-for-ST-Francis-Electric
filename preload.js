@@ -9,7 +9,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // Save / print
   savePDF:              (data)  => ipcRenderer.invoke('save-pdf', data),
+  printPage:            (opts)  => ipcRenderer.invoke('print-page', opts),
   uploadScan:           (data)  => ipcRenderer.invoke('upload-scan', data),
+
+  // BIT inspections (CHP 108 year-logs)
+  getBit:               ()      => ipcRenderer.invoke('get-bit'),
+  saveBit:              (data)  => ipcRenderer.invoke('save-bit', data),
 
   // Equipment DB
   getEquipment:         ()      => ipcRenderer.invoke('get-equipment'),
@@ -26,6 +31,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Mileage tracking
   getMileage:           ()      => ipcRenderer.invoke('get-mileage'),
   appendMileage:        (data)  => ipcRenderer.invoke('append-mileage', data),
+
+  // Parts list
+  getParts:             ()      => ipcRenderer.invoke('get-parts'),
+  saveParts:            (data)  => ipcRenderer.invoke('save-parts', data),
 
   // Past records
   scanRecords:          ()      => ipcRenderer.invoke('scan-records'),
