@@ -198,7 +198,43 @@ function createWindow() {
   });
 }
 
-app.whenReady().then(() => { logInfo('startup', 'v' + currentVersion()); createWindow(); });
+// ── Daily backup of shared JSON files ────────────────────────────────────────
+// The shared JSONs are the app's only "database"; one bad OneDrive sync or a
+// crash mid-write could lose fleet history. On the first launch of each day,
+// snapshot every sf-*.json in the share to backups/YYYY-MM-DD/ and prune to
+// the newest 30 snapshots. Runs a few seconds after launch so it never slows
+// the window coming up.
+const BACKUP_KEEP = 30;
+function backupSharedJSON() {
+  try {
+    const root = sharepointBase();
+    const stamp = new Date().toISOString().slice(0, 10);
+    const bakRoot = path.join(root, 'backups');
+    const dir = path.join(bakRoot, stamp);
+    if (fs.existsSync(dir)) return; // already snapshotted today
+    const files = fs.readdirSync(root).filter(f => /^sf-.*\.json$/i.test(f));
+    if (!files.length) return;
+    fs.mkdirSync(dir, { recursive: true });
+    files.forEach(f => {
+      try { fs.copyFileSync(path.join(root, f), path.join(dir, f)); }
+      catch (e) { logError('backup copy ' + f, e); }
+    });
+    logInfo('backup', stamp + ' (' + files.length + ' files)');
+    // Prune old snapshots — only date-named dirs inside our backups folder
+    const snaps = fs.readdirSync(bakRoot).filter(d => /^\d{4}-\d{2}-\d{2}$/.test(d)).sort();
+    while (snaps.length > BACKUP_KEEP) {
+      const old = snaps.shift();
+      try { fs.rmSync(path.join(bakRoot, old), { recursive: true, force: true }); }
+      catch (e) { logError('backup prune ' + old, e); }
+    }
+  } catch (e) { logError('backupSharedJSON', e); }
+}
+
+app.whenReady().then(() => {
+  logInfo('startup', 'v' + currentVersion());
+  createWindow();
+  setTimeout(backupSharedJSON, 3000);
+});
 app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
 
 // ── IPC: config ──────────────────────────────────────────────────────────────
@@ -237,6 +273,44 @@ ipcMain.handle('save-bit', (_evt, payload) => {
   const db = readJSONSafe(p) || {};
   db[payload.key] = payload.record;
   return writeJSONSafe(p, db) ? ok() : err('failed to write BIT file');
+});
+
+// ── Shared array-store helper ────────────────────────────────────────────────
+// Read-modify-write on one entry keyed by id, so two machines editing
+// different entries through OneDrive don't clobber each other (same idea
+// as save-bit / append-history).
+function upsertById(file, entry) {
+  const p = path.join(sharepointBase(), file);
+  const arr = readJSONSafe(p) || [];
+  const i = arr.findIndex(x => x && x.id === entry.id);
+  if (i >= 0) arr[i] = entry; else arr.push(entry);
+  return writeJSONSafe(p, arr) ? ok() : err('failed to write ' + file);
+}
+
+// ── IPC: maintenance trackers ────────────────────────────────────────────────
+// sf-trackers.json is an array of fully custom per-unit reminders:
+//   { id, unit, name, intervalDays, intervalMiles, lastDate, lastMiles, notes }
+// Due status is computed in the renderer from today's date + latest mileage.
+ipcMain.handle('get-trackers', () => readJSONSafe(path.join(sharepointBase(), 'sf-trackers.json')) || []);
+ipcMain.handle('upsert-tracker', (_evt, entry) => {
+  if (!entry || typeof entry !== 'object' || !entry.id) return err('upsert-tracker: invalid entry');
+  return upsertById('sf-trackers.json', entry);
+});
+ipcMain.handle('delete-tracker', (_evt, id) => {
+  if (!id) return err('delete-tracker: missing id');
+  const p = path.join(sharepointBase(), 'sf-trackers.json');
+  const arr = (readJSONSafe(p) || []).filter(x => x && x.id !== id);
+  return writeJSONSafe(p, arr) ? ok() : err('failed to write trackers file');
+});
+
+// ── IPC: defect tracking ─────────────────────────────────────────────────────
+// sf-defects.json is an array:
+//   { id, unit, date, source ('BIT'|'Service'|'Manual'), item, desc,
+//     reportedBy, status ('open'|'resolved'), resolvedDate, resolvedBy, resolution }
+ipcMain.handle('get-defects', () => readJSONSafe(path.join(sharepointBase(), 'sf-defects.json')) || []);
+ipcMain.handle('upsert-defect', (_evt, entry) => {
+  if (!entry || typeof entry !== 'object' || !entry.id) return err('upsert-defect: invalid entry');
+  return upsertById('sf-defects.json', entry);
 });
 
 // ── IPC: mileage tracking ────────────────────────────────────────────────────

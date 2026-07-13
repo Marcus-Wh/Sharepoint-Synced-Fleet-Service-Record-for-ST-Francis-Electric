@@ -16,6 +16,15 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getBit:               ()      => ipcRenderer.invoke('get-bit'),
   saveBit:              (data)  => ipcRenderer.invoke('save-bit', data),
 
+  // Maintenance trackers
+  getTrackers:          ()      => ipcRenderer.invoke('get-trackers'),
+  upsertTracker:        (entry) => ipcRenderer.invoke('upsert-tracker', entry),
+  deleteTracker:        (id)    => ipcRenderer.invoke('delete-tracker', id),
+
+  // Defect tracking
+  getDefects:           ()      => ipcRenderer.invoke('get-defects'),
+  upsertDefect:         (entry) => ipcRenderer.invoke('upsert-defect', entry),
+
   // Equipment DB
   getEquipment:         ()      => ipcRenderer.invoke('get-equipment'),
   saveEquipment:        (list)  => ipcRenderer.invoke('save-equipment', list),

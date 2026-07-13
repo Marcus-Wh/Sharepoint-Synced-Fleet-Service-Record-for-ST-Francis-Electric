@@ -52,6 +52,8 @@
   .tb-menu-item { display:flex; align-items:center; gap:8px; width:100%; text-align:left; font-family:'Barlow Condensed',sans-serif; font-size:13px; font-weight:700; letter-spacing:.5px; text-transform:uppercase; padding:8px 10px; border:none; border-radius:3px; background:transparent; color:var(--ink); cursor:pointer; white-space:nowrap; }
   .tb-menu-item:hover { background:rgba(0,0,0,.07); }
   [data-theme="dark"] .tb-menu-item:hover { background:rgba(255,255,255,.10); }
+  .tb-badge { display:inline-block; min-width:16px; text-align:center; background:var(--accent); color:#fff; border-radius:9px; font-size:10px; font-weight:700; padding:1px 5px; margin-left:6px; }
+  .tb-menu-item .tb-badge { margin-left:auto; }
   #sharepoint-status { font-size:11px; color:rgba(255,255,255,.4); max-width:220px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex-shrink:1; }
   #sharepoint-status.configured { color:#6dbf6d; }
 
@@ -383,6 +385,14 @@
   <button class="tb-btn" onclick="openHistory()">&#128196; History</button>
   <button class="tb-btn" onclick="openRecords()">&#128269; Records</button>
   <button class="tb-btn" onclick="openParts()" title="Look up part numbers for common jobs">&#128295; Parts</button>
+  <div class="tb-menu" id="fleet-menu">
+    <button class="tb-btn" onclick="toggleFleetMenu(event)" aria-haspopup="true">&#128663; Fleet &#9662;<span class="tb-badge" id="fleet-badge" hidden></span></button>
+    <div class="tb-menu-panel">
+      <button class="tb-menu-item" onclick="closeFleetMenu();openTrackers()">&#128276; Trackers<span class="tb-badge" id="trk-badge" hidden></span></button>
+      <button class="tb-menu-item" onclick="closeFleetMenu();openDefects()">&#9888;&#65039; Defects<span class="tb-badge" id="def-badge" hidden></span></button>
+      <button class="tb-menu-item" onclick="closeFleetMenu();openUnitFile()">&#128666; Unit File</button>
+    </div>
+  </div>
   <button class="tb-btn" onclick="uploadScan()" title="Upload a phone photo or scan of a paper service record">&#128247; Upload</button>
   <div class="tb-menu" id="tools-menu">
     <button class="tb-btn" onclick="toggleToolsMenu(event)" aria-haspopup="true">&#9881; Tools &#9662;</button>
@@ -601,6 +611,90 @@
 </div>
 
 <!-- Main form -->
+<!-- Shared unit datalist for Fleet features (populated from the equipment DB) -->
+<datalist id="unit-datalist"></datalist>
+
+<!-- Maintenance Trackers modal -->
+<div class="modal-overlay" id="trackers-modal" hidden>
+  <div class="modal-panel" style="width:960px">
+    <div class="modal-header">
+      <span class="modal-title">&#128276; Maintenance Trackers</span>
+      <button class="modal-close" onclick="closeModal('trackers-modal')">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div style="margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid var(--rule)">
+        <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--meta-color);margin-bottom:10px">Add / Edit Tracker &mdash; set either interval, or both</div>
+        <div class="form-row">
+          <div class="form-field" style="max-width:200px"><label>Unit #</label><input type="text" id="trk-unit" list="unit-datalist" placeholder="Search unit #" autocomplete="off"></div>
+          <div class="form-field"><label>Task</label><input type="text" id="trk-name" list="trk-name-list" placeholder="Oil Change / BIT / Smoke Test..." autocomplete="off"><datalist id="trk-name-list"></datalist></div>
+          <div class="form-field" style="max-width:110px"><label>Every (days)</label><input type="text" id="trk-int-days" placeholder="90" inputmode="numeric"></div>
+          <div class="form-field" style="max-width:130px"><label>Every (mi/hrs)</label><input type="text" id="trk-int-miles" placeholder="5000" inputmode="numeric"></div>
+          <div class="form-field" style="max-width:140px"><label>Last done</label><input type="date" id="trk-last-date"></div>
+          <div class="form-field" style="max-width:130px"><label>Miles/hrs then</label><input type="text" id="trk-last-miles" placeholder="123456" inputmode="numeric"></div>
+        </div>
+        <div class="form-row" style="margin-top:6px">
+          <div class="form-field"><label>Notes</label><input type="text" id="trk-notes" placeholder="Optional"></div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <button class="tb-btn tb-btn-primary" onclick="saveTrackerEntry()">Save Tracker</button>
+          <button class="tb-btn" onclick="clearTrackerForm()">Clear</button>
+          <span id="trk-msg" style="font-size:11px;color:var(--meta-color);align-self:center"></span>
+        </div>
+      </div>
+      <div style="margin-bottom:10px">
+        <input type="text" id="trk-search" placeholder="Filter by unit or task..." style="border:1px solid var(--rule);border-radius:3px;padding:6px 10px;width:100%;font-family:'Barlow',sans-serif;font-size:12px;background:var(--page-bg);color:var(--ink);outline:none" oninput="renderTrackers()">
+      </div>
+      <div style="overflow-x:auto" id="trackers-content"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Defect Tracker modal -->
+<div class="modal-overlay" id="defects-modal" hidden>
+  <div class="modal-panel" style="width:960px">
+    <div class="modal-header">
+      <span class="modal-title">&#9888;&#65039; Defect Tracker</span>
+      <button class="modal-close" onclick="closeModal('defects-modal')">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div style="margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid var(--rule)">
+        <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--meta-color);margin-bottom:10px">Report a Defect &mdash; DEF items from BIT sheets and flagged checklist items are added automatically on save</div>
+        <div class="form-row">
+          <div class="form-field" style="max-width:200px"><label>Unit #</label><input type="text" id="def-unit" list="unit-datalist" placeholder="Search unit #" autocomplete="off"></div>
+          <div class="form-field" style="max-width:200px"><label>Item / Area</label><input type="text" id="def-item" placeholder="RF tire / Parking brake..."></div>
+          <div class="form-field"><label>Description</label><input type="text" id="def-desc" placeholder="What's wrong"></div>
+          <div class="form-field" style="max-width:140px"><label>Reported by</label><input type="text" id="def-by" placeholder="Name"></div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <button class="tb-btn tb-btn-primary" onclick="saveDefectEntry()">Log Defect</button>
+          <span id="def-msg" style="font-size:11px;color:var(--meta-color);align-self:center"></span>
+        </div>
+      </div>
+      <div style="display:flex;gap:12px;align-items:center;margin-bottom:10px">
+        <input type="text" id="def-search" placeholder="Filter by unit, item, tech..." style="border:1px solid var(--rule);border-radius:3px;padding:6px 10px;flex:1;font-family:'Barlow',sans-serif;font-size:12px;background:var(--page-bg);color:var(--ink);outline:none" oninput="renderDefects()">
+        <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--meta-color);white-space:nowrap;cursor:pointer"><input type="checkbox" id="def-show-resolved" onchange="renderDefects()"> Show resolved</label>
+      </div>
+      <div style="overflow-x:auto" id="defects-content"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Unit File modal -->
+<div class="modal-overlay" id="unitfile-modal" hidden>
+  <div class="modal-panel" style="width:980px">
+    <div class="modal-header">
+      <span class="modal-title">&#128666; Unit File</span>
+      <button class="modal-close" onclick="closeModal('unitfile-modal')">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div style="margin-bottom:14px">
+        <input type="text" id="uf-unit" list="unit-datalist" placeholder="Type a unit # to open its file..." autocomplete="off" style="border:1px solid var(--rule);border-radius:3px;padding:8px 10px;width:100%;font-family:'Barlow',sans-serif;font-size:13px;background:var(--page-bg);color:var(--ink);outline:none">
+      </div>
+      <div id="unitfile-content"><div class="empty-state">Pick a unit to see its complete file &mdash; defects, trackers, service history, mileage, BIT logs, and saved PDFs.</div></div>
+    </div>
+  </div>
+</div>
+
 <!-- Form tabs -->
 <div class="form-tabs">
   <button class="form-tab active" id="tab-sr" onclick="showTab('sr')">Service Record</button>
@@ -1146,8 +1240,10 @@ async function finish() {
         try { await window.electronAPI.appendHistory({date,equipment:equipVal,job,technician:tech,status,notes:(document.getElementById('mechanic-comments')||{}).value||'',path:result.path}); } catch(_) {}
         const mIn=(document.getElementById('mileage-in')||{}).value||'', mOut=(document.getElementById('mileage-out')||{}).value||'';
         if (equipVal&&(mIn||mOut)) { try { await window.electronAPI.appendMileage({code:equipVal.split(' ')[0],entry:{date,in:mIn,out:mOut,tech}}); } catch(_) {} }
+        let defN=0;
+        if (equipVal) { try { defN=await logDefects(equipVal,'Service',collectServiceDefects(),tech); } catch(_) {} }
         if (await sfConfirm(
-          'Saved:\n'+result.path,
+          'Saved:\n'+result.path+(defN?'\n\n'+defN+' flagged item'+(defN===1?'':'s')+' added to the Defect Tracker.':''),
           'Saved',
           { okLabel: 'Start New Service Record', cancelLabel: 'Keep Editing Current Service Record' }
         )) await clearForm(true);
@@ -1952,7 +2048,9 @@ async function finishBIT() {
       if (result.ok) {
         const label = (bitType === 'truck' ? 'Truck/Tractor' : 'Trailer') + ' CHP 108 — ' + byId('bit-cal-year').value;
         try { await window.electronAPI.appendHistory({ date, equipment: unitVal, job: '', technician: '', status: 'BIT Inspection', notes: label, path: result.path }); } catch (_) {}
-        await sfAlert('Saved:\n' + result.path, 'Saved');
+        let defN = 0;
+        try { defN = await logDefects(unitVal, 'BIT', collectBitDefects(), localStorage.getItem('lastTech') || ''); } catch (_) {}
+        await sfAlert('Saved:\n' + result.path + (defN ? '\n\n' + defN + ' DEF item' + (defN === 1 ? '' : 's') + ' added to the Defect Tracker.' : ''), 'Saved');
       } else if (!result.cancelled) { await sfAlert('Save failed: ' + (result.error || 'unknown error'), 'Error'); }
     } catch (e) { cleanupPrintView(); await sfAlert('Error: ' + e.message, 'Error'); }
     return;
@@ -2001,6 +2099,438 @@ async function initBit() {
   }
 }
 
+// ── Fleet: maintenance trackers, defect tracking, unit file ───────────────
+let trackersData = [];
+let defectsData = [];
+let trkEditId = '';
+
+function toggleFleetMenu(e) { e.stopPropagation(); document.getElementById('fleet-menu').classList.toggle('open'); }
+function closeFleetMenu() { document.getElementById('fleet-menu').classList.remove('open'); }
+document.addEventListener('click', e => { const m = byId('fleet-menu'); if (m && !m.contains(e.target)) m.classList.remove('open'); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeFleetMenu(); });
+
+function newId(prefix) { return prefix + Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+function unitCodeOf(v) { return String(v || '').trim().split(/\s+/)[0] || ''; }
+function todayStr() { return new Date().toISOString().slice(0, 10); }
+
+// Days from today until dateStr + plusDays (negative = overdue)
+function daysUntil(dateStr, plusDays) {
+  const m = String(dateStr || '').split('-').map(Number);
+  if (m.length < 3 || !m[0]) return null;
+  const due = Date.UTC(m[0], m[1] - 1, m[2] + (Number(plusDays) || 0));
+  const now = new Date();
+  return Math.round((due - Date.UTC(now.getFullYear(), now.getMonth(), now.getDate())) / 86400000);
+}
+function trackerDueDate(t) {
+  if (!(t.intervalDays && t.lastDate)) return '';
+  const m = String(t.lastDate).split('-').map(Number);
+  if (m.length < 3 || !m[0]) return '';
+  const d = new Date(m[0], m[1] - 1, m[2] + (Number(t.intervalDays) || 0));
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+// Most recent known mileage/hours for a unit code, from the mileage log
+function latestMiles(code) {
+  const list = mileageData[code];
+  if (!list || !list.length) return null;
+  for (let i = list.length - 1; i >= 0; i--) {
+    const v = parseInt(String(list[i].out || list[i].in || '').replace(/[^0-9]/g, ''), 10);
+    if (!isNaN(v) && v > 0) return v;
+  }
+  return null;
+}
+
+// Status: over (past due), soon (≤14 days or ≤500 mi), ok, none (no data yet)
+function trackerStatus(t) {
+  let d = null, m = null;
+  const bits = [];
+  if (t.intervalDays && t.lastDate) {
+    d = daysUntil(t.lastDate, t.intervalDays);
+    if (d != null) bits.push(d < 0 ? (-d) + ' days overdue' : d + ' days left');
+  }
+  if (t.intervalMiles && String(t.lastMiles || '').trim()) {
+    const cur = latestMiles(unitCodeOf(t.unit));
+    if (cur != null) {
+      m = (parseInt(t.lastMiles, 10) || 0) + (parseInt(t.intervalMiles, 10) || 0) - cur;
+      bits.push(m < 0 ? (-m) + ' mi overdue' : m + ' mi left');
+    } else bits.push('no mileage data yet');
+  }
+  let level = 'none';
+  if (d != null || m != null) {
+    if ((d != null && d < 0) || (m != null && m < 0)) level = 'over';
+    else if ((d != null && d <= 14) || (m != null && m <= 500)) level = 'soon';
+    else level = 'ok';
+  }
+  return { level, detail: bits.join(' &middot; ') };
+}
+function trackerBadge(s) {
+  if (s.level === 'over') return '<span class="badge badge-red">OVERDUE</span>';
+  if (s.level === 'soon') return '<span class="badge badge-yellow">DUE SOON</span>';
+  if (s.level === 'ok')   return '<span class="badge badge-green">OK</span>';
+  return '<span class="badge badge-gray">&mdash;</span>';
+}
+
+function setBadge(id, n) { const el = byId(id); if (!el) return; el.hidden = !n; el.textContent = n; }
+function refreshFleetBadges() {
+  const openDef = defectsData.filter(d => d.status === 'open').length;
+  let due = 0;
+  trackersData.forEach(t => { const s = trackerStatus(t); if (s.level === 'over' || s.level === 'soon') due++; });
+  setBadge('def-badge', openDef);
+  setBadge('trk-badge', due);
+  setBadge('fleet-badge', openDef + due);
+}
+
+// ── Trackers UI ────────────────────────────────────────────────────────────
+async function openTrackers() {
+  byId('trackers-modal').hidden = false;
+  if (window.electronAPI) {
+    try { trackersData = await window.electronAPI.getTrackers() || []; } catch (_) {}
+    try { mileageData = await window.electronAPI.getMileage() || {}; } catch (_) {}
+  }
+  refreshTrackerNameList();
+  renderTrackers();
+  refreshFleetBadges();
+}
+function refreshTrackerNameList() {
+  const names = [...new Set(trackersData.map(t => t.name).filter(Boolean))].sort();
+  byId('trk-name-list').innerHTML = names.map(n => '<option value="' + escHtml(n) + '">').join('');
+}
+function clearTrackerForm() {
+  ['trk-unit', 'trk-name', 'trk-int-days', 'trk-int-miles', 'trk-last-miles', 'trk-notes'].forEach(id => { byId(id).value = ''; });
+  byId('trk-last-date').value = todayStr();
+  byId('trk-msg').textContent = '';
+  trkEditId = '';
+}
+async function saveTrackerEntry() {
+  const unit = byId('trk-unit').value.trim();
+  const name = byId('trk-name').value.trim();
+  const intervalDays  = byId('trk-int-days').value.replace(/[^0-9]/g, '');
+  const intervalMiles = byId('trk-int-miles').value.replace(/[^0-9]/g, '');
+  const lastDate  = byId('trk-last-date').value;
+  const lastMiles = byId('trk-last-miles').value.replace(/[^0-9]/g, '');
+  const notes = byId('trk-notes').value.trim();
+  const msg = byId('trk-msg');
+  if (!unit || !name) { msg.textContent = 'Unit # and task are required.'; return; }
+  if (!intervalDays && !intervalMiles) { msg.textContent = 'Set an interval in days, miles/hours, or both.'; return; }
+  const entry = {
+    id: trkEditId || newId('t'),
+    unit, name, intervalDays, intervalMiles,
+    lastDate: lastDate || todayStr(), lastMiles, notes
+  };
+  const i = trackersData.findIndex(t => t.id === entry.id);
+  if (i >= 0) trackersData[i] = entry; else trackersData.push(entry);
+  if (window.electronAPI) { try { await window.electronAPI.upsertTracker(entry); } catch (_) {} }
+  msg.textContent = 'Saved.';
+  setTimeout(() => { msg.textContent = ''; }, 2000);
+  trkEditId = '';
+  refreshTrackerNameList();
+  renderTrackers();
+  refreshFleetBadges();
+}
+function editTracker(id) {
+  const t = trackersData.find(x => x.id === id); if (!t) return;
+  trkEditId = id;
+  byId('trk-unit').value = t.unit || '';
+  byId('trk-name').value = t.name || '';
+  byId('trk-int-days').value = t.intervalDays || '';
+  byId('trk-int-miles').value = t.intervalMiles || '';
+  byId('trk-last-date').value = t.lastDate || '';
+  byId('trk-last-miles').value = t.lastMiles || '';
+  byId('trk-notes').value = t.notes || '';
+  byId('trk-unit').focus();
+}
+async function deleteTracker(id) {
+  const t = trackersData.find(x => x.id === id); if (!t) return;
+  if (!(await sfConfirm('Delete tracker "' + t.name + '" for ' + t.unit + '?', 'Delete Tracker'))) return;
+  trackersData = trackersData.filter(x => x.id !== id);
+  if (window.electronAPI) { try { await window.electronAPI.deleteTracker(id); } catch (_) {} }
+  renderTrackers();
+  refreshFleetBadges();
+}
+async function trackerDone(id) {
+  const t = trackersData.find(x => x.id === id); if (!t) return;
+  let miles = t.lastMiles || '';
+  if (t.intervalMiles) {
+    const cur = latestMiles(unitCodeOf(t.unit));
+    const ans = await sfPrompt('Current mileage/hours on ' + t.unit + '?', 'Mark Done', cur != null ? String(cur) : '');
+    if (ans === null) return;
+    miles = ans.replace(/[^0-9]/g, '');
+  }
+  t.lastDate = todayStr();
+  t.lastMiles = miles;
+  if (window.electronAPI) { try { await window.electronAPI.upsertTracker(t); } catch (_) {} }
+  renderTrackers();
+  refreshFleetBadges();
+}
+function renderTrackers() {
+  const q = (byId('trk-search').value || '').toLowerCase();
+  const el = byId('trackers-content');
+  const order = { over: 0, soon: 1, ok: 2, none: 3 };
+  const rows = trackersData
+    .filter(t => !q || ((t.unit || '') + ' ' + (t.name || '') + ' ' + (t.notes || '')).toLowerCase().includes(q))
+    .map(t => ({ t, s: trackerStatus(t) }))
+    .sort((a, b) => (order[a.s.level] - order[b.s.level]) || String(a.t.unit).localeCompare(String(b.t.unit), undefined, { numeric: true }));
+  if (!rows.length) { el.innerHTML = '<div class="empty-state">No trackers yet. Add one above &mdash; oil changes, BIT inspections, smoke tests, anything with an interval.</div>'; return; }
+  el.innerHTML =
+    '<table class="data-table"><thead><tr><th>Status</th><th>Unit #</th><th>Task</th><th>Interval</th><th>Last Done</th><th>Next Due</th><th>Countdown</th><th></th></tr></thead><tbody>' +
+    rows.map(({ t, s }) => {
+      const iv = [t.intervalDays && t.intervalDays + ' days', t.intervalMiles && Number(t.intervalMiles).toLocaleString() + ' mi/hrs'].filter(Boolean).join(' / ');
+      return '<tr><td>' + trackerBadge(s) + '</td>' +
+        '<td><strong>' + escHtml(t.unit || '') + '</strong></td>' +
+        '<td>' + escHtml(t.name || '') + (t.notes ? '<div style="font-size:10px;color:var(--meta-color)">' + escHtml(t.notes) + '</div>' : '') + '</td>' +
+        '<td>' + escHtml(iv) + '</td>' +
+        '<td>' + escHtml(t.lastDate || '') + (t.lastMiles ? ' @ ' + escHtml(String(t.lastMiles)) : '') + '</td>' +
+        '<td>' + escHtml(trackerDueDate(t)) + '</td>' +
+        '<td style="font-size:11px">' + s.detail + '</td>' +
+        '<td style="white-space:nowrap"><button class="action-btn" data-trk-done="' + t.id + '">&#10003; Done</button> ' +
+        '<button class="action-btn" data-trk-edit="' + t.id + '">Edit</button> ' +
+        '<button class="action-btn danger" data-trk-del="' + t.id + '">Del</button></td></tr>';
+    }).join('') + '</tbody></table>';
+}
+document.addEventListener('click', e => {
+  const done = e.target.closest('[data-trk-done]'); if (done) { trackerDone(done.getAttribute('data-trk-done')); return; }
+  const ed = e.target.closest('[data-trk-edit]');   if (ed)   { editTracker(ed.getAttribute('data-trk-edit')); return; }
+  const del = e.target.closest('[data-trk-del]');   if (del)  { deleteTracker(del.getAttribute('data-trk-del')); }
+});
+
+// ── Defects UI + auto-capture ──────────────────────────────────────────────
+async function openDefects() {
+  byId('defects-modal').hidden = false;
+  if (window.electronAPI) { try { defectsData = await window.electronAPI.getDefects() || []; } catch (_) {} }
+  const by = byId('def-by');
+  if (by && !by.value) { try { by.value = localStorage.getItem('lastTech') || ''; } catch (_) {} }
+  renderDefects();
+  refreshFleetBadges();
+}
+async function saveDefectEntry() {
+  const unit = byId('def-unit').value.trim();
+  const item = byId('def-item').value.trim();
+  const desc = byId('def-desc').value.trim();
+  const by = byId('def-by').value.trim();
+  const msg = byId('def-msg');
+  if (!unit || !item) { msg.textContent = 'Unit # and item are required.'; return; }
+  const entry = {
+    id: newId('d'), unit, date: todayStr(), source: 'Manual', item, desc,
+    reportedBy: by, status: 'open', resolvedDate: '', resolvedBy: '', resolution: ''
+  };
+  defectsData.push(entry);
+  if (window.electronAPI) { try { await window.electronAPI.upsertDefect(entry); } catch (_) {} }
+  byId('def-item').value = ''; byId('def-desc').value = '';
+  msg.textContent = 'Logged.';
+  setTimeout(() => { msg.textContent = ''; }, 2000);
+  renderDefects();
+  refreshFleetBadges();
+}
+async function resolveDefect(id) {
+  const d = defectsData.find(x => x.id === id); if (!d) return;
+  const fix = await sfPrompt('How was it fixed?\n' + d.unit + ' — ' + d.item, 'Resolve Defect', '');
+  if (fix === null) return;
+  d.status = 'resolved';
+  d.resolvedDate = todayStr();
+  d.resolution = fix;
+  try { d.resolvedBy = (document.getElementById('technician') || {}).value || localStorage.getItem('lastTech') || ''; } catch (_) { d.resolvedBy = ''; }
+  if (window.electronAPI) { try { await window.electronAPI.upsertDefect(d); } catch (_) {} }
+  renderDefects();
+  refreshFleetBadges();
+  if (!byId('unitfile-modal').hidden) renderUnitFile();
+}
+async function reopenDefect(id) {
+  const d = defectsData.find(x => x.id === id); if (!d) return;
+  d.status = 'open'; d.resolvedDate = ''; d.resolvedBy = ''; d.resolution = '';
+  if (window.electronAPI) { try { await window.electronAPI.upsertDefect(d); } catch (_) {} }
+  renderDefects();
+  refreshFleetBadges();
+  if (!byId('unitfile-modal').hidden) renderUnitFile();
+}
+function sourceBadge(s) {
+  if (s === 'BIT') return '<span class="badge badge-yellow">BIT</span>';
+  if (s === 'Service') return '<span class="badge badge-gray">Service</span>';
+  return '<span class="badge badge-gray">Manual</span>';
+}
+function renderDefects() {
+  const q = (byId('def-search').value || '').toLowerCase();
+  const showResolved = byId('def-show-resolved').checked;
+  const el = byId('defects-content');
+  const rows = [...defectsData]
+    .filter(d => showResolved || d.status === 'open')
+    .filter(d => !q || ((d.unit || '') + ' ' + (d.item || '') + ' ' + (d.desc || '') + ' ' + (d.reportedBy || '')).toLowerCase().includes(q))
+    .sort((a, b) => (a.status === b.status ? String(b.date).localeCompare(String(a.date)) : (a.status === 'open' ? -1 : 1)));
+  if (!rows.length) { el.innerHTML = '<div class="empty-state">' + (showResolved ? 'No defects found.' : 'No open defects &mdash; nice.') + '</div>'; return; }
+  el.innerHTML =
+    '<table class="data-table"><thead><tr><th>Date</th><th>Unit #</th><th>Source</th><th>Item</th><th>Description</th><th>By</th><th>Status</th><th></th></tr></thead><tbody>' +
+    rows.map(d =>
+      '<tr><td>' + escHtml(d.date || '') + '</td>' +
+      '<td><strong>' + escHtml(d.unit || '') + '</strong></td>' +
+      '<td>' + sourceBadge(d.source) + '</td>' +
+      '<td>' + escHtml(d.item || '') + '</td>' +
+      '<td style="max-width:220px">' + escHtml(d.desc || '') +
+        (d.status === 'resolved' && d.resolution ? '<div style="font-size:10px;color:var(--meta-color)">Fixed: ' + escHtml(d.resolution) + ' (' + escHtml(d.resolvedDate || '') + (d.resolvedBy ? ', ' + escHtml(d.resolvedBy) : '') + ')</div>' : '') + '</td>' +
+      '<td>' + escHtml(d.reportedBy || '') + '</td>' +
+      '<td>' + (d.status === 'open' ? '<span class="badge badge-red">OPEN</span>' : '<span class="badge badge-green">RESOLVED</span>') + '</td>' +
+      '<td style="white-space:nowrap">' + (d.status === 'open'
+        ? '<button class="action-btn" data-def-resolve="' + d.id + '">&#10003; Resolve</button>'
+        : '<button class="action-btn" data-def-reopen="' + d.id + '">Reopen</button>') + '</td></tr>'
+    ).join('') + '</tbody></table>';
+}
+document.addEventListener('click', e => {
+  const res = e.target.closest('[data-def-resolve]'); if (res) { resolveDefect(res.getAttribute('data-def-resolve')); return; }
+  const re = e.target.closest('[data-def-reopen]');   if (re)  { reopenDefect(re.getAttribute('data-def-reopen')); }
+});
+
+// Auto-capture — anything a tech marks bad becomes an open defect on save.
+// Conservative list: past-tense fixes (Replaced/Repaired) and neutral values
+// (OK, N/A, Check, Flush) don't count.
+const DEFECT_BAD_RE = /(^(leaking|leak|worn|weak|not working|missing|damaged|expired|grooved|warped|cupping|low|out|needed|replace(?!d)|repair(?!ed)))|fail/i;
+function collectServiceDefects() {
+  const found = [];
+  document.querySelectorAll('#sr-wrap .check-item').forEach(ci => {
+    const sel = ci.querySelector('select'); if (!sel) return;
+    const v = sel.value || ''; if (!DEFECT_BAD_RE.test(v)) return;
+    let label = ((ci.querySelector('.check-label') || {}).textContent || 'Item').trim();
+    const note = ci.querySelector('.inline-note-input');
+    if (note && note.value.trim()) label += ': ' + note.value.trim();
+    found.push({ item: label, desc: v });
+  });
+  document.querySelectorAll('#sr-wrap .measure-row').forEach(row => {
+    const sel = row.querySelector('select'); if (!sel) return;
+    const v = sel.value || ''; if (!DEFECT_BAD_RE.test(v)) return;
+    const grp = row.closest('.measure-group, .carb-box');
+    const title = grp ? ((grp.querySelector('.measure-title') || {}).textContent || '') : '';
+    const lbl = ((row.querySelector('label') || {}).textContent || '').trim();
+    found.push({ item: (title + (lbl ? ' — ' + lbl : '')).trim() || 'Measurement', desc: v });
+  });
+  return found;
+}
+function collectBitDefects() {
+  const found = [];
+  const items = bitItems();
+  const prefix = bitType === 'truck' ? 'CHP 108 Truck #' : 'CHP 108 Trailer #';
+  for (let c = 0; c < BIT_COLS; c++) {
+    items.forEach(it => {
+      const el = byId('bit-c' + c + '-i' + it[0]);
+      if (el && el.value === 'DEF') found.push({ item: prefix + it[0] + ' — ' + it[2], desc: 'Marked DEF (inspection column ' + (c + 1) + ')' });
+    });
+  }
+  const seen = new Set();
+  return found.filter(f => { const k = f.item.toLowerCase(); if (seen.has(k)) return false; seen.add(k); return true; });
+}
+// Logs new defects, skipping any already open for the same unit + item
+async function logDefects(unitVal, source, list, tech) {
+  let added = 0;
+  const code = unitCodeOf(unitVal);
+  for (const f of list) {
+    const dup = defectsData.some(d => d.status === 'open' && unitCodeOf(d.unit) === code && (d.item || '').toLowerCase() === f.item.toLowerCase());
+    if (dup) continue;
+    const entry = {
+      id: newId('d'), unit: unitVal, date: todayStr(), source, item: f.item, desc: f.desc,
+      reportedBy: tech || '', status: 'open', resolvedDate: '', resolvedBy: '', resolution: ''
+    };
+    defectsData.push(entry);
+    if (window.electronAPI && window.electronAPI.upsertDefect) { try { await window.electronAPI.upsertDefect(entry); } catch (_) {} }
+    added++;
+  }
+  if (added) refreshFleetBadges();
+  return added;
+}
+
+// ── Unit File ───────────────────────────────────────────────────────────────
+let ufRecords = [], ufBitDB = {};
+async function openUnitFile(prefillUnit) {
+  byId('unitfile-modal').hidden = false;
+  if (window.electronAPI) {
+    try { historyData = await window.electronAPI.getHistory() || []; } catch (_) {}
+    try { mileageData = await window.electronAPI.getMileage() || {}; } catch (_) {}
+    try { defectsData = await window.electronAPI.getDefects() || []; } catch (_) {}
+    try { trackersData = await window.electronAPI.getTrackers() || []; } catch (_) {}
+    try { ufBitDB = await window.electronAPI.getBit() || {}; } catch (_) {}
+    try { ufRecords = await window.electronAPI.scanRecords() || []; } catch (_) {}
+  }
+  const input = byId('uf-unit');
+  if (prefillUnit) input.value = prefillUnit;
+  else if (!input.value && equipInput.value.trim()) input.value = equipInput.value.trim();
+  renderUnitFile();
+  refreshFleetBadges();
+}
+function ufSection(title, inner, count) {
+  return '<div style="margin-bottom:16px">' +
+    '<div style="font-family:\'Barlow Condensed\',sans-serif;font-weight:700;font-size:13px;letter-spacing:1.5px;text-transform:uppercase;color:var(--ink);margin-bottom:6px;padding-bottom:4px;border-bottom:1px solid var(--rule)">' +
+    title + (count != null ? ' <span style="color:var(--meta-color);font-weight:400">(' + count + ')</span>' : '') + '</div>' + inner + '</div>';
+}
+function renderUnitFile() {
+  const el = byId('unitfile-content');
+  const code = unitCodeOf(byId('uf-unit').value);
+  if (!code) { el.innerHTML = '<div class="empty-state">Pick a unit to see its complete file.</div>'; return; }
+  let html = '';
+  // Equipment info
+  const a = equipmentDB.find(x => x.code === code);
+  html += ufSection('&#128663; Unit ' + escHtml(code),
+    a ? '<div style="font-size:13px">' + escHtml(a.desc || '') +
+        '<div style="font-size:11px;color:var(--meta-color);margin-top:2px">' +
+        [a.year && 'Year: ' + a.year, a.make && 'Make: ' + a.make, a.model && 'Model: ' + a.model, a.vin && 'VIN: ' + a.vin].filter(Boolean).map(escHtml).join(' &middot; ') +
+        '</div></div>'
+      : '<div style="font-size:12px;color:var(--meta-color)">Not in the equipment database.</div>');
+  // Open defects
+  const defs = defectsData.filter(d => unitCodeOf(d.unit) === code && d.status === 'open');
+  html += ufSection('&#9888;&#65039; Open Defects', defs.length
+    ? '<table class="data-table"><thead><tr><th>Date</th><th>Source</th><th>Item</th><th>Description</th><th></th></tr></thead><tbody>' +
+      defs.map(d => '<tr><td>' + escHtml(d.date || '') + '</td><td>' + sourceBadge(d.source) + '</td><td>' + escHtml(d.item || '') + '</td><td>' + escHtml(d.desc || '') + '</td>' +
+        '<td><button class="action-btn" data-def-resolve="' + d.id + '">&#10003; Resolve</button></td></tr>').join('') + '</tbody></table>'
+    : '<div style="font-size:12px;color:var(--meta-color)">None &mdash; unit is clean.</div>', defs.length);
+  // Trackers
+  const trks = trackersData.filter(t => unitCodeOf(t.unit) === code);
+  html += ufSection('&#128276; Trackers', trks.length
+    ? '<table class="data-table"><thead><tr><th>Status</th><th>Task</th><th>Last Done</th><th>Next Due</th><th>Countdown</th></tr></thead><tbody>' +
+      trks.map(t => { const s = trackerStatus(t); return '<tr><td>' + trackerBadge(s) + '</td><td>' + escHtml(t.name || '') + '</td><td>' + escHtml(t.lastDate || '') + '</td><td>' + escHtml(trackerDueDate(t)) + '</td><td style="font-size:11px">' + s.detail + '</td></tr>'; }).join('') + '</tbody></table>'
+    : '<div style="font-size:12px;color:var(--meta-color)">No trackers set for this unit.</div>', trks.length);
+  // Service history
+  const hist = [...historyData].reverse().filter(h => unitCodeOf(h.equipment) === code);
+  html += ufSection('&#128196; Service History', hist.length
+    ? '<table class="data-table"><thead><tr><th>Date</th><th>Job #</th><th>Tech</th><th>Status</th><th>Notes</th><th></th></tr></thead><tbody>' +
+      hist.slice(0, 15).map(h => '<tr><td>' + escHtml(h.date || '') + '</td><td>' + escHtml(h.job || '') + '</td><td>' + escHtml(h.technician || '') + '</td><td>' + badgeForStatus(h.status) + '</td>' +
+        '<td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + escHtml(h.notes || '') + '">' + escHtml((h.notes || '').slice(0, 60)) + '</td>' +
+        '<td>' + (h.path ? '<button class="action-btn" data-open-path="' + escHtml(h.path) + '">Open</button>' : '') + '</td></tr>').join('') + '</tbody></table>' +
+      (hist.length > 15 ? '<div style="font-size:11px;color:var(--meta-color);margin-top:4px">Showing 15 of ' + hist.length + ' &mdash; see Service History for the rest.</div>' : '')
+    : '<div style="font-size:12px;color:var(--meta-color)">No service records yet.</div>', hist.length);
+  // Mileage
+  const miles = (mileageData[code] || []);
+  html += ufSection('&#128663; Mileage / Hours', miles.length
+    ? '<table class="data-table"><thead><tr><th>Date</th><th>In</th><th>Out</th><th>Tech</th></tr></thead><tbody>' +
+      [...miles].reverse().slice(0, 8).map(m => '<tr><td>' + escHtml(m.date || '') + '</td><td>' + escHtml(m.in || '') + '</td><td>' + escHtml(m.out || '') + '</td><td>' + escHtml(m.tech || '') + '</td></tr>').join('') + '</tbody></table>'
+    : '<div style="font-size:12px;color:var(--meta-color)">No mileage entries.</div>', miles.length);
+  // BIT year-logs
+  const bits = Object.keys(ufBitDB).filter(k => k.split('|')[0] === code).sort().reverse();
+  html += ufSection('&#128203; BIT Inspections (CHP 108)', bits.length
+    ? '<table class="data-table"><thead><tr><th>Year</th><th>Form</th><th>Inspections Filled</th><th>Last Updated</th></tr></thead><tbody>' +
+      bits.map(k => {
+        const r = ufBitDB[k] || {};
+        const used = (r.cols || []).filter(cl => cl && (cl.m || Object.keys(cl.v || {}).length)).length;
+        return '<tr><td>' + escHtml(k.split('|')[1] || '') + '</td><td>' + escHtml(k.split('|')[2] === 'trailer' ? 'Trailer' : 'Truck/Tractor') + '</td><td>' + used + ' of 12</td><td>' + escHtml((r.updated || '').slice(0, 10)) + '</td></tr>';
+      }).join('') + '</tbody></table>'
+    : '<div style="font-size:12px;color:var(--meta-color)">No BIT sheets yet &mdash; open the BIT Inspection tab to start one.</div>', bits.length);
+  // Saved PDFs
+  const re = new RegExp('_' + code.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '([-._]|$)');
+  const pdfs = ufRecords.filter(r => re.test(r.file));
+  html += ufSection('&#128193; Saved PDFs', pdfs.length
+    ? '<table class="data-table"><thead><tr><th>Month</th><th>File</th><th></th></tr></thead><tbody>' +
+      pdfs.slice(0, 20).map(r => '<tr><td>' + escHtml(r.month) + '</td><td>' + escHtml(r.file) + '</td><td><button class="action-btn" data-open-path="' + escHtml(r.path) + '">Open</button></td></tr>').join('') + '</tbody></table>' +
+      (pdfs.length > 20 ? '<div style="font-size:11px;color:var(--meta-color);margin-top:4px">Showing 20 of ' + pdfs.length + '.</div>' : '')
+    : '<div style="font-size:12px;color:var(--meta-color)">No PDFs found for this unit.</div>', pdfs.length);
+  el.innerHTML = html;
+}
+byId('uf-unit').addEventListener('change', renderUnitFile);
+byId('uf-unit').addEventListener('input', () => { if (!byId('uf-unit').value.trim()) renderUnitFile(); });
+
+async function initFleet() {
+  byId('unit-datalist').innerHTML = equipmentDB.map(a =>
+    '<option value="' + escHtml(a.code + (a.desc ? ' ' + a.desc : '')) + '">').join('');
+  if (window.electronAPI) {
+    try { trackersData = await window.electronAPI.getTrackers() || []; } catch (_) { trackersData = []; }
+    try { defectsData = await window.electronAPI.getDefects() || []; } catch (_) { defectsData = []; }
+    try { mileageData = await window.electronAPI.getMileage() || {}; } catch (_) { mileageData = {}; }
+  }
+  byId('trk-last-date').value = todayStr();
+  refreshFleetBadges();
+}
+
 // ── Init ──────────────────────────────────────────────────────────────────
 window.addEventListener('DOMContentLoaded', async () => {
   loadTheme();
@@ -2010,6 +2540,7 @@ window.addEventListener('DOMContentLoaded', async () => {
   syncStatus();
   refreshSharepointStatus();
   checkForUpdate();
+  initFleet();
 });
 </script>
 </body>
